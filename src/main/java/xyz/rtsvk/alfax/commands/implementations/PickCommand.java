@@ -1,0 +1,27 @@
+package xyz.rtsvk.alfax.commands.implementations;
+
+import discord4j.common.util.Snowflake;
+import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.User;
+import discord4j.core.object.entity.channel.MessageChannel;
+import xyz.rtsvk.alfax.commands.Command;
+
+import java.util.List;
+import java.util.Random;
+
+public class PickCommand implements Command {
+	@Override
+	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
+		if (args.size() > 1) {
+			Random random = new Random();
+			int index = random.nextInt(args.size()-1);
+			channel.createMessage("**" + user.getMention() + ", " + args.get(index+1) + "**").block();
+		}
+		else channel.createMessage("**Potrebujem minimalne 2 moznosti, aby som mohol rozhodnnut!**").block();
+	}
+
+	@Override
+	public String getDescription() {
+		return "Nahodne vyberie jednu z ponukanych moznosti.";
+	}
+}
