@@ -7,6 +7,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Logger;
 
@@ -46,8 +47,14 @@ public class ChatGPTCommand implements Command {
 				output = IOUtils.toString(in, StandardCharsets.UTF_8);
 			}
 			this.logger.info(output);
-			JSONObject object = (JSONObject) (new JSONParser().parse(output));
-			channel.createMessage(object.get("content").toString()).block();
+			try {
+				JSONObject object = (JSONObject) (new JSONParser().parse(output));
+				channel.createMessage(object.get("content").toString()).block();
+			}
+			catch (ParseException ex) {
+				channel.createMessage("Chyba: " + output).block();
+			}
+
 		}
 
 		// TODO: Use a non-deprecated way to edit the message.
