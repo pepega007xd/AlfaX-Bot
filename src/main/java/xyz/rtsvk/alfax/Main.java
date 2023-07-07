@@ -31,7 +31,8 @@ public class Main {
 			String filename = config.getStringOrDefault("default-config", "config.properties");
 			Config defaultConfig = Config.createDefaultConfig(filename);
 			config.putAll(defaultConfig);
-			logger.info("Created default configuration file '" + filename + "'! Using the default configuration");
+			logger.info("Created default configuration file '" + filename + "'!");
+			return;
 		}
 
 		// initialize database wrapper
