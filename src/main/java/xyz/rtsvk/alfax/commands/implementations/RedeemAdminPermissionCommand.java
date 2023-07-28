@@ -1,0 +1,51 @@
+package xyz.rtsvk.alfax.commands.implementations;
+
+import discord4j.common.util.Snowflake;
+import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.User;
+import discord4j.core.object.entity.channel.MessageChannel;
+import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.Config;
+import xyz.rtsvk.alfax.util.Database;
+
+import java.util.List;
+
+public class RedeemAdminPermissionCommand implements Command {
+
+	private Config config;
+
+	public RedeemAdminPermissionCommand(Config config) {
+		this.config = config;
+	}
+
+	@Override
+	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+
+		int adminCount = Database.getAdminCount();
+		if (adminCount == -1) {
+			channel.createMessage("Nastala chyba pri vykonavani tohto prikazu. Prosim, kontaktujte vyvojara.").block();
+			return;
+		}
+
+		if (adminCount > 0) {
+			channel.createMessage("Tento prikaz moze vykonat iba prvy admin.").block();
+			return;
+		}
+
+		String token = config.getString("admin-token");
+		String userToken = args.get(1);
+		if (token.equals(userToken)) {
+			Database.updateUserPermissions(user.getId().asString(), Database.PERMISSION_ADMIN);
+			channel.createMessage("Pouzivatel " + user.getMention() + " bol povyseny na admina.").block();
+			config.remove("admin-token");
+		}
+		else {
+			channel.createMessage("Zadali ste nespravny token.").block();
+		}
+	}
+
+	@Override
+	public String getDescription() {
+		return null;
+	}
+}

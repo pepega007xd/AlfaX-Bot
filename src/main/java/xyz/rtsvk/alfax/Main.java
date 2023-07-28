@@ -28,9 +28,10 @@ public class Main {
 
 		// to generate the default config, run the bot as `java -jar jarfile.jar --default-config`
 		if (config.containsKey("default-config")) {
-			String filename = config.getStringOrDefault("default-config", "config.properties");
-			Config defaultConfig = Config.createDefaultConfig(filename);
-			config.putAll(defaultConfig);
+			String filename = config.getStringOrDefault("default-config", "config.properties.def");
+			Config defaultConfig = Config.defaultConfig();
+			defaultConfig.forEach(config::putIfAbsent);
+			config.write(filename);
 			logger.info("Created default configuration file '" + filename + "'!");
 			return;
 		}
@@ -42,6 +43,17 @@ public class Main {
 				config.getString("db-password"),
 				config.getString("db-name")
 		);
+
+		int adminCount = Database.getAdminCount();
+		if (adminCount == 0) {
+			String token = config.getStringOrDefault("admin-token", getRandomString(128));
+			logger.info("No admin users found! Admin token: " + token);
+			config.putIfAbsent("admin-token", token);
+		}
+		else if (adminCount == -1) {
+			logger.error("Failed to check admin users! Please check your database connection.");
+			return;
+		}
 
 		// set up discord gateway
 		final String prefix = config.getString("prefix");
@@ -59,6 +71,11 @@ public class Main {
 		CommandProcessor.registerCommand("createapiuser", new CreateApiUserCommand());
 		CommandProcessor.registerCommand("bigtext", new BigTextCommand());
 		CommandProcessor.registerCommand("gpt", new ChatGPTCommand());
+		CommandProcessor.registerCommand("mqtt", new MqttPublishCommand(config));
+		CommandProcessor.registerCommand("senreg", new RegisterSensorCommand(prefix));
+		CommandProcessor.registerCommand("register", new CreateUserCommand());
+		CommandProcessor.registerCommand("usermod", new UserPermissionsCommand(config));
+		CommandProcessor.registerCommand("redeem", new RedeemAdminPermissionCommand(config));
 
 		// register command aliases
 		CommandProcessor.registerCommandAlias("fortune", "8ball");
@@ -75,9 +92,9 @@ public class Main {
 			webserver.start();
 		}
 
-		// MQTT Client
+		// MQTT Subscribe Client
 		if (config.getBoolean("mqtt-enabled")) {
-			Thread mqtt = new Mqtt(config.getString("mqtt-uri"), gateway);
+			Mqtt mqtt = new Mqtt(config, "AlfaX-Bot-Sub", gateway);
 			mqtt.start();
 		}
 
@@ -101,16 +118,13 @@ public class Main {
 							if (cmd == null)
 								channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
 							else cmd.handle(user, channel, commandArgs, guildId, gateway);
-						}
-						catch (Exception e) {
+						} catch (Exception e) {
 							e.printStackTrace();
-							channel.createMessage("**:x: Nastala neocakavana chyba. Prosim, skontrolujte standardny vystup pre viac informacii.**").block();
+							channel.createMessage("**:x: " + e.getMessage() + "**").block();
 						}
 					});
 					cmdThread.start();
-				}
-
-				else if (msg.startsWith(mention)) {
+				} else if (msg.startsWith(mention)) {
 					Thread cmd = new Thread(() -> {
 						try {
 							Command c = CommandProcessor.getCommandExecutor("gpt");
@@ -122,12 +136,33 @@ public class Main {
 					});
 					cmd.start();
 				}
-			}
-			catch (Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace(System.out);
 			}
 		});
 
 		gateway.onDisconnect().block();
+	}
+
+	// create a function to generate a random string of length n
+	public static String getRandomString(int n) {
+		// chose a Character random from this String
+		String AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+									+ "0123456789"
+									+ "abcdefghijklmnopqrstuvxyz";
+
+		// create StringBuffer size of AlphaNumericString
+		StringBuilder sb = new StringBuilder(n);
+
+		for (int i = 0; i < n; i++) {
+			// generate a random number between
+			// 0 to AlphaNumericString variable length
+			int index = (int)(AlphaNumericString.length() * Math.random());
+
+			// add Character one by one in end of sb
+			sb.append(AlphaNumericString.charAt(index));
+		}
+
+		return sb.toString();
 	}
 }

@@ -5,23 +5,21 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.Database;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.List;
 
-public class RatCommand implements Command {
+public class CreateUserCommand implements Command {
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
-		URL url = new URL("https://api.imgur.com/3/gallery/tag_info/rat");
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
-		conn.setRequestMethod("GET");
-		conn.setRequestProperty("Client-ID", "client_id");
+		String userId = user.getId().asString();
+		String hash = Database.hash(userId);
+		Database.addUser(userId, hash, 0);
+		user.getPrivateChannel().block().createMessage("Tvoj API kluc je: " + hash).block();
 	}
 
 	@Override
 	public String getDescription() {
-		return null;
+		return "Pouzivatel, ktory napise tento prikaz, si vyziada pristup k API.";
 	}
 }

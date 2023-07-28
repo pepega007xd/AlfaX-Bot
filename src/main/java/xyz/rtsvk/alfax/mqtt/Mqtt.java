@@ -6,6 +6,13 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import xyz.rtsvk.alfax.mqtt.actions.Action;
+import xyz.rtsvk.alfax.mqtt.actions.SendAlertAction;
+import xyz.rtsvk.alfax.mqtt.actions.SensorDataReceivedAction;
+import xyz.rtsvk.alfax.util.Config;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class Mqtt extends Thread {
 
@@ -13,12 +20,19 @@ public class Mqtt extends Thread {
 	private MqttClient client;
 
 	private final String uri;
+	private final String clientid;
 	private String uname;
 	private char[] pwd;
+	private boolean doSubscribe = true;
 
-	public Mqtt(String uri, GatewayDiscordClient gateway) {
-		this.uri = uri;
+	public Mqtt(Config cfg, String clientid, GatewayDiscordClient gateway) {
+
+		this.uri = cfg.getStringOrDefault("mqtt-uri", null);
+		this.uname = cfg.getStringOrDefault("mqtt-username", null);
+		this.pwd = cfg.getStringOrDefault("mqtt-password", null).toCharArray();
+
 		this.gateway = gateway;
+		this.clientid = clientid;
 	}
 
 	public void subscribe(String topic, int qos) throws MqttException {
@@ -32,26 +46,34 @@ public class Mqtt extends Thread {
 	@Override
 	public void run() {
 		try {
-			this.client = new MqttClient(this.uri, "AlfaX-Bot-Subscriber", new MemoryPersistence());
+			this.client = new MqttClient(this.uri, this.clientid, new MemoryPersistence());
 
 			MqttConnectOptions ops = new MqttConnectOptions();
-			ops.setUserName(this.uname);
-			ops.setPassword(this.pwd);
 			ops.setCleanSession(true);
+			if (this.uname != null && this.pwd != null){
+				ops.setUserName(this.uname);
+				ops.setPassword(this.pwd);
+			}
 
 			this.client.connect(ops);
-			this.client.setCallback(new MqttHandler(gateway));
+
+			if (this.doSubscribe) {
+				Map<String, Action> actionMap = new HashMap<>();
+
+				actionMap.put("alert", new SendAlertAction());
+				actionMap.put("sensor", new SensorDataReceivedAction());
+
+				this.client.setCallback(new MqttHandler(this.gateway, actionMap));
+				for (String topic : actionMap.keySet())
+					this.client.subscribe(topic, 0);
+			}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void setUsername(String uname) {
-		this.uname = uname;
-	}
-
-	public void setPassword(char[] pwd) {
-		this.pwd = pwd;
+	public void setDoSubscribe(boolean doSubscribe) {
+		this.doSubscribe = doSubscribe;
 	}
 }

@@ -15,7 +15,7 @@ public class HelpCommand implements Command {
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
 		StringBuilder sb = new StringBuilder();
-		sb.append("```\nPoznam tieto prikazy:\n");
+		sb.append("Poznam tieto prikazy:```\n");
 
 		final Map<String, Command> cmds = CommandProcessor.getCommands();
 		cmds.forEach((key, value) -> {

@@ -21,7 +21,7 @@ public class Logger {
 	}
 
 	public Logger(Class<?> cl) {
-		this(cl.getName());
+		this(cl.getSimpleName());
 	}
 
 	private static void print(String tag, String message, String severity) {

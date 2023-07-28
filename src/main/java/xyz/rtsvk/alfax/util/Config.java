@@ -77,7 +77,7 @@ public class Config extends LinkedHashMap<String, Object> {
 		return cfg;
 	}
 
-	public static Config createDefaultConfig(String filename) throws IOException {
+	public static Config defaultConfig() throws IOException {
 		Config config = new Config();
 
 		// General configuration
@@ -100,15 +100,18 @@ public class Config extends LinkedHashMap<String, Object> {
 		config.put("mqtt-user", "user");
 		config.put("mqtt-password", "password");
 
+		return config;
+	}
+
+	public void write(String filename) throws IOException {
 		FileWriter writer = new FileWriter(filename);
-		for (Map.Entry<String, Object> entry : config.entrySet()) {
+		for (Map.Entry<String, Object> entry : this.entrySet()) {
 			writer.append(entry.getKey());
 			writer.append("=");
 			writer.append(entry.getValue().toString());
 			writer.append("\n");
 		}
 		writer.close();
-		return config;
 	}
 
 	public String getStringOrDefault(String key, String def) {

@@ -1,0 +1,65 @@
+package xyz.rtsvk.alfax.commands.implementations;
+
+import discord4j.common.util.Snowflake;
+import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.User;
+import discord4j.core.object.entity.channel.MessageChannel;
+import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.Database;
+
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
+
+public class RegisterSensorCommand implements Command {
+
+	private String prefix;
+
+	public RegisterSensorCommand(String prefix) {
+		this.prefix = prefix;
+	}
+
+	@Override
+	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+		// String key, String type, String unit, float min, float max
+
+		if (args.size() < 4) {
+			channel.createMessage("Usage: " + this.prefix + "senreg <type> <unit> <min> <max>").block();
+			return;
+		}
+
+		String key = generateKey(128);
+		String type = args.get(0);
+		String unit = args.get(1);
+		float min = Float.parseFloat(args.get(2));
+		float max = Float.parseFloat(args.get(3));
+
+		boolean success = Database.registerSensor(key, "", type, unit, min, max);
+		if (success) channel.createMessage("Sensor '" + key + "' registered.").block();
+		else channel.createMessage("Failed to register sensor. Please contact developer.").block();
+	}
+
+	private String generateKey(int length) throws NoSuchAlgorithmException {
+
+		StringBuilder input = new StringBuilder();
+		for(int i = 0; i < 16; i++) {
+			input.append((char) (Math.random() * 26 + 97));
+		}
+
+		String result = input.toString();
+		MessageDigest md = MessageDigest.getInstance("SHA-512");
+		md.update(input.toString().getBytes());
+		BigInteger hash = new BigInteger(1, md.digest());
+		result = hash.toString(16);
+		while(result.length() < length) {
+			result = "0" + result;
+		}
+		return result;
+	}
+
+	@Override
+	public String getDescription() {
+		return "Register sensor command";
+	}
+}
