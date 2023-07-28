@@ -2,6 +2,7 @@ package xyz.rtsvk.alfax.webserver;
 
 import discord4j.core.GatewayDiscordClient;
 import xyz.rtsvk.alfax.util.Database;
+import xyz.rtsvk.alfax.util.Logger;
 import xyz.rtsvk.alfax.webserver.actions.Action;
 import xyz.rtsvk.alfax.webserver.actions.DirectMessageAction;
 import xyz.rtsvk.alfax.webserver.actions.SendMessageAction;
@@ -21,6 +22,7 @@ public class RequestHandler implements Runnable {
 	private BufferedInputStream in;
 	private PrintWriter out;
 	private GatewayDiscordClient client;
+	private Logger logger;
 
 	private Map<String, Content> supportedContentTypes;
 	private Map<String, Action> actions;
@@ -28,6 +30,7 @@ public class RequestHandler implements Runnable {
 	public RequestHandler(Socket s, GatewayDiscordClient client) throws IOException {
 		this.skt = s;
 		this.client = client;
+		this.logger = new Logger(this.getClass());
 
 		this.in = new BufferedInputStream(s.getInputStream());
 		this.out = new PrintWriter(s.getOutputStream());
@@ -48,6 +51,7 @@ public class RequestHandler implements Runnable {
 			this.skt.setSoTimeout(5000);
 
 			String data = readStream(this.in);
+			this.logger.info(data);
 			Request request = Request.parse(data, this.supportedContentTypes);
 
 			if (request == null)
@@ -60,7 +64,7 @@ public class RequestHandler implements Runnable {
 
 				this.out.print(request.getProtocolVersion() + " ");
 				if (!Database.authorizeAPIUser(request.getProperty("auth_key")))
-					this.out.println(Response.RESP_401_FORBIDDEN);
+					this.out.println(Response.RESP_403_FORBIDDEN);
 
 				else {
 					Action action = this.actions.get(request.getPath().substring(1));

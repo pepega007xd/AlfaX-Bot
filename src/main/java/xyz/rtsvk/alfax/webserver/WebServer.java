@@ -15,7 +15,7 @@ public class WebServer extends Thread {
 	}
 
 	@Override
-	public void run(){
+	public void run() {
 		try {
 			ServerSocket srv = new ServerSocket(this.port);
 			while (true) {

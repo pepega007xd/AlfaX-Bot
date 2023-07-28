@@ -77,7 +77,7 @@ public class Config extends LinkedHashMap<String, Object> {
 		return cfg;
 	}
 
-	public static Config defaultConfig() throws IOException {
+	public static Config defaultConfig() {
 		Config config = new Config();
 
 		// General configuration
@@ -92,7 +92,7 @@ public class Config extends LinkedHashMap<String, Object> {
 		config.put("db-name", "discord");
 
 		// HTTP server config
-		config.put("webhook-port", "8080");
+		config.put("webserver-port", "8080");
 
 		// MQTT client config
 		config.put("mqtt-enabled", "false");

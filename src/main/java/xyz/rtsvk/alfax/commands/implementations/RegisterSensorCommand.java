@@ -24,16 +24,16 @@ public class RegisterSensorCommand implements Command {
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
 		// String key, String type, String unit, float min, float max
 
-		if (args.size() < 4) {
+		if (args.size() < 5) {
 			channel.createMessage("Usage: " + this.prefix + "senreg <type> <unit> <min> <max>").block();
 			return;
 		}
 
 		String key = generateKey(128);
-		String type = args.get(0);
-		String unit = args.get(1);
-		float min = Float.parseFloat(args.get(2));
-		float max = Float.parseFloat(args.get(3));
+		String type = args.get(1);
+		String unit = args.get(2);
+		float min = Float.parseFloat(args.get(3));
+		float max = Float.parseFloat(args.get(4));
 
 		boolean success = Database.registerSensor(key, "", type, unit, min, max);
 		if (success) channel.createMessage("Sensor '" + key + "' registered.").block();

@@ -2,6 +2,7 @@ package xyz.rtsvk.alfax.commands.implementations;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
@@ -31,11 +32,16 @@ public class UserPermissionsCommand implements Command {
 			return;
 		}
 
-		String id = args.get(1);
+		String mention = args.get(1);
+		if (!mention.startsWith("<@") || !mention.endsWith(">")) {
+			channel.createMessage("Nespravny format uzivatela. Pouzite mention, prosim.").block();
+			return;
+		}
+		String id = mention.substring(2, mention.length() - 1);
 		int permissions = Integer.parseInt(args.get(2));
 		boolean success = Database.updateUserPermissions(id, permissions);
 		if (success) {
-			channel.createMessage("Uzivatel " + id + " ma teraz opravnenia " + permissions).block();
+			channel.createMessage("Uzivatel " + mention + " ma teraz opravnenia " + permissions).block();
 		} else {
 			channel.createMessage("Nepodarilo sa upravit opravnenia uzivatela " + id).block();
 		}

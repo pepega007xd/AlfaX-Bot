@@ -18,12 +18,14 @@ public class Database {
 	private static Logger logger;
 
 	public static final byte PERMISSION_ADMIN = 0x01;
-	public static final byte PERMISSION_API = 0x02;
-	public static final byte PERMISSION_MQTT = 0x04;
+	public static final byte PERMISSION_API_CHANNEL = 0x02;
+	public static final byte PERMISSION_API_DM = 0x04;
+	public static final byte PERMISSION_API = PERMISSION_API_CHANNEL | PERMISSION_API_DM;
+	public static final byte PERMISSION_MQTT = 0x08;
 
 	public static void init(String host, String user, String password, String db) {
-		initialized = false;
 		logger = new Logger(Database.class);
+		initialized = false;
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			url = "jdbc:mysql://" + user + ":" + password + "@" + host;
@@ -45,6 +47,7 @@ public class Database {
 			conn.close();
 			url += ("/" + db);
 			initialized = true;
+			logger.info("Database wrapper class initialized successfully.");
 		}
 		catch (Exception e){
 			logger.error("An error occured while trying to initialize the database wrapper class.");
@@ -162,12 +165,26 @@ public class Database {
 
 		try {
 			Connection conn = DriverManager.getConnection(url);
+			Statement st = conn.createStatement();
 
+			// check if user exists
+			ResultSet set = st.executeQuery("SELECT `permissions` FROM `auth` WHERE `id`='" + id + "';");
+			if (!set.next()) {
+				set.close();
+				st.close();
+				conn.close();
+				return false;
+			}
+
+			// update permissions
 			String sql = "UPDATE `auth` SET `permissions`='" + permissions + "' WHERE `id`='" + id + "';";
-			conn.createStatement().execute(sql);
-			conn.close();
+			st.execute(sql);
 
+			set.close();
+			st.close();
+			conn.close();
 			return true;
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
@@ -181,9 +198,12 @@ public class Database {
 		try {
 			if(!initialized) return false;
 			Connection conn = DriverManager.getConnection(url);
-			ResultSet set = conn.createStatement().executeQuery("SELECT `permissions` FROM `auth` WHERE `auth_key`='" + key.toString() + "';");
-			if (set.next())
-				result = (set.getInt("permissions") & PERMISSION_API) == PERMISSION_API;
+			String query = "SELECT `permissions` FROM `auth` WHERE `auth_key`='" + key + "';";
+			ResultSet set = conn.createStatement().executeQuery(query);
+			if (set.next()) {
+				byte p = set.getByte("permissions");
+				result = (p & PERMISSION_API) == PERMISSION_API || (p & PERMISSION_ADMIN) == PERMISSION_ADMIN;
+			}
 			set.close();
 			conn.close();
 		}

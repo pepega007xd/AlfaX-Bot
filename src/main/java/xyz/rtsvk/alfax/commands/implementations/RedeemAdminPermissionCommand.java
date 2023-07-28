@@ -46,6 +46,6 @@ public class RedeemAdminPermissionCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return null;
+		return "Redeem admin permission token.";
 	}
 }

@@ -67,7 +67,7 @@ public class Main {
 		CommandProcessor.registerCommand("8ball", new FortuneTeller());
 		CommandProcessor.registerCommand("pick", new PickCommand());
 		CommandProcessor.registerCommand("today", new TodayCommand());
-		CommandProcessor.registerCommand("weather", new WeatherCommand());
+		CommandProcessor.registerCommand("weather", new WeatherCommand(config.getString("weather-api-key")));
 		CommandProcessor.registerCommand("createapiuser", new CreateApiUserCommand());
 		CommandProcessor.registerCommand("bigtext", new BigTextCommand());
 		CommandProcessor.registerCommand("gpt", new ChatGPTCommand());
@@ -87,8 +87,8 @@ public class Main {
 		}
 
 		// webhook server
-		if (config.containsKey("webhook-port")) {
-			Thread webserver = new WebServer(config.getInt("webhook-port"), gateway);
+		if (config.containsKey("webserver-port")) {
+			Thread webserver = new WebServer(config.getInt("webserver-port"), gateway);
 			webserver.start();
 		}
 
@@ -102,7 +102,7 @@ public class Main {
 			try {
 				final Message message = event.getMessage();
 				final User user = message.getAuthor().orElseThrow(Exception::new);
-				final Snowflake guildId = message.getGuildId().orElseThrow(Exception::new);
+				final Snowflake guildId = message.getGuildId().orElse(null);
 				final MessageChannel channel = message.getChannel().block();
 				final String msg = message.getContent().trim();
 				final String mention = gateway.getSelf().block().getMention();
