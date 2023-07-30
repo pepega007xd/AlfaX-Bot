@@ -58,9 +58,9 @@ public class WeatherCommand implements Command {
 			conn.disconnect();
 
 			EmbedCreateSpec table = EmbedCreateSpec.builder()
-					.author("Aktualne pocasie pre " + cityName, null, null)
-					.title("Powered by OpenWeatherMap.com")
-					.url("https://www.openweathermap.org/")
+					.author("Powered by OpenWeatherMap.com", "https://www.openweathermap.org/", null)
+					.title("Aktualne pocasie pre " + cityName)
+					.image("http://openweathermap.org/img/w/" + json.get("icon") + ".png")
 					.addField("Teplota:", temp + " °C (pocitovo " + feelsLike + ")", false)
 					.addField("Najvyssia denna teplota: ", main.get("temp_max") + " °C", false)
 					.addField("Najnizsia denna teplota: ", main.get("temp_min") + " °C", false)

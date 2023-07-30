@@ -76,6 +76,7 @@ public class Main {
 		CommandProcessor.registerCommand("register", new CreateUserCommand());
 		CommandProcessor.registerCommand("usermod", new UserPermissionsCommand(config));
 		CommandProcessor.registerCommand("redeem", new RedeemAdminPermissionCommand(config));
+		CommandProcessor.registerCommand("credits", new CreditsCommand());
 
 		// register command aliases
 		CommandProcessor.registerCommandAlias("fortune", "8ball");
