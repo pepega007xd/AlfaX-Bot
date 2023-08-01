@@ -1,11 +1,11 @@
 package xyz.rtsvk.alfax.webserver;
 
 import discord4j.core.GatewayDiscordClient;
+import xyz.rtsvk.alfax.mqtt.Mqtt;
+import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
-import xyz.rtsvk.alfax.webserver.actions.Action;
-import xyz.rtsvk.alfax.webserver.actions.DirectMessageAction;
-import xyz.rtsvk.alfax.webserver.actions.SendMessageAction;
+import xyz.rtsvk.alfax.webserver.actions.*;
 import xyz.rtsvk.alfax.webserver.contentparsing.Content;
 import xyz.rtsvk.alfax.webserver.contentparsing.FormContent;
 import xyz.rtsvk.alfax.webserver.contentparsing.JsonContent;
@@ -26,8 +26,10 @@ public class RequestHandler implements Runnable {
 
 	private Map<String, Content> supportedContentTypes;
 	private Map<String, Action> actions;
+	private Config cfg;
 
-	public RequestHandler(Socket s, GatewayDiscordClient client) throws IOException {
+	public RequestHandler(Config cfg, Socket s, GatewayDiscordClient client) throws IOException {
+		this.cfg = cfg;
 		this.skt = s;
 		this.client = client;
 		this.logger = new Logger(this.getClass());
@@ -42,20 +44,24 @@ public class RequestHandler implements Runnable {
 		this.actions = new HashMap<>();
 		this.actions.put("channel_message", new SendMessageAction());
 		this.actions.put("direct_message", new DirectMessageAction());
+		if (cfg.getBooleanOrDefault("mqtt-enabled", false))
+			this.actions.put("mqtt_publish", new MqttPublishAction(new Mqtt(cfg, "Alfa-X Bot WebServer", client)));
 	}
 
 	@Override
 	public void run() {
 		try {
-			System.out.println("Incoming request from " + this.skt.getRemoteSocketAddress());
-			this.skt.setSoTimeout(5000);
+			this.logger.info("Incoming request from " + this.skt.getRemoteSocketAddress());
+			this.skt.setSoTimeout(10000);
 
-			String data = readStream(this.in);
-			this.logger.info(data);
-			Request request = Request.parse(data, this.supportedContentTypes);
+			//String data = readStream(this.in);
+			//this.logger.info(data);
 
+			Request request = Request.parseRequest(this.in, this.supportedContentTypes);
+
+			String message = "Server responeded with an error";
 			if (request == null)
-				this.out.println("HTTP/1.1 " + Response.RESP_500_ERROR);
+				this.out.println(Response.RESP_500_ERROR);
 
 			else if (!request.getRequestMethod().equals("POST"))
 				this.out.println(request.getProtocolVersion() + " " + Response.RESP_501_NOT_IMPLEMENTED);
@@ -63,20 +69,19 @@ public class RequestHandler implements Runnable {
 			else {
 
 				this.out.print(request.getProtocolVersion() + " ");
-				if (!Database.authorizeAPIUser(request.getProperty("auth_key")))
-					this.out.println(Response.RESP_403_FORBIDDEN);
+				Action action = this.actions.get(request.getPath().substring(1));
 
+				if (action == null)
+					this.out.println(Response.RESP_404_NOT_FOUND);
 				else {
-					Action action = this.actions.get(request.getPath().substring(1));
-
-					if (action == null)
-						this.out.println(Response.RESP_404_NOT_FOUND);
-					else this.out.println(action.handle(this.client, request));
+					ActionResult result = action.handle(this.client, request);
+					this.out.println(result.getStatus());
+					message = result.getMessage();
 				}
 			}
 
-			StringBuilder message = new StringBuilder("Lorem ipsum dolor sit amet.\n");
-			if (request != null) request.getProperties().forEach((k,v) -> message.append(k + " = " + v + "\n"));
+			/*StringBuilder message = new StringBuilder("Lorem ipsum dolor sit amet.\n");
+			if (request != null) request.getProperties().forEach((k,v) -> message.append(k + " = " + v + "\n"));*/
 
 			this.out.println("Content-type: text/plain");
 			this.out.println("Content-length: " + message.length());

@@ -145,12 +145,39 @@ public class Database {
 				logger.info("checkin permissions for " + id);
 				set.close();
 				conn.close();
-				return (userPermissions & permissions) == permissions;
+				return (userPermissions & permissions) == permissions
+						|| (userPermissions & PERMISSION_ADMIN) == PERMISSION_ADMIN;
 			}
 			else {
 				set.close();
 				conn.close();
 				logger.warn("User " + id + " not found in database.");
+				return false;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean checkPermissionsByKey(String key, byte permissions) {
+		if (!initialized) return false;
+
+		try {
+			Connection conn = DriverManager.getConnection(url);
+			ResultSet set = conn.createStatement().executeQuery("SELECT `permissions` FROM `auth` WHERE `auth_key`='" + key + "';");
+			if (set.next()) {
+				byte userPermissions = set.getByte("permissions");
+				set.close();
+				conn.close();
+				return (userPermissions & permissions) == permissions
+						|| (userPermissions & PERMISSION_ADMIN) == PERMISSION_ADMIN;
+			}
+			else {
+				set.close();
+				conn.close();
+				logger.warn("User not found in database.");
 				return false;
 			}
 		}

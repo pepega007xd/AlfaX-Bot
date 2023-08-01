@@ -89,7 +89,7 @@ public class Main {
 
 		// webhook server
 		if (config.containsKey("webserver-port")) {
-			Thread webserver = new WebServer(config.getInt("webserver-port"), gateway);
+			Thread webserver = new WebServer(config, gateway);
 			webserver.start();
 		}
 
