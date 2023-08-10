@@ -63,15 +63,18 @@ public class Config extends LinkedHashMap<String, Object> {
 			else if (arg.startsWith(COMMENT)) continue;
 
 			int commentIdx = arg.indexOf(COMMENT);
-			commentIdx = commentIdx > 0 ? commentIdx : arg.length();
+			commentIdx = commentIdx == -1 ? arg.length() : commentIdx;
 
 			int eqIdx = arg.indexOf(ARG_ASSIGN);
-			eqIdx = eqIdx > 0 ? eqIdx : arg.length();
+			if (eqIdx == -1) {
+				cfg.put(arg.substring(0, commentIdx), "");
+			}
+			else {
+				String key = arg.substring(0, eqIdx);
+				String value = arg.substring(eqIdx + 1, commentIdx);
 
-			String key = arg.substring(0, eqIdx);
-			String value = arg.substring((eqIdx+1) % arg.length(), commentIdx);
-
-			cfg.put(key, value);
+				cfg.put(key, value);
+			}
 		}
 
 		return cfg;
@@ -115,8 +118,7 @@ public class Config extends LinkedHashMap<String, Object> {
 	}
 
 	public String getStringOrDefault(String key, String def) {
-		Object value = this.get(key);
-		return value != null ? String.valueOf(value) : def;
+		return String.valueOf(this.getOrDefault(key, def));
 	}
 
 	public String getString(String key) {

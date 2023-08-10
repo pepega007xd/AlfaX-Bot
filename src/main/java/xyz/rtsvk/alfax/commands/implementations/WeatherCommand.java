@@ -79,7 +79,7 @@ public class WeatherCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Zobrazi predpoved pocasia pre zadanu oblast.";
+		return "Zobrazi aktualne pocasie pre zadanu oblast.";
 	}
 
 	private double kphToKts(double mps) {

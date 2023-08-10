@@ -79,7 +79,8 @@ public class BigTextCommand implements Command {
 		for (int i = 0; i < msg.length(); i++) {
 			if (emojis.containsKey(msg.charAt(i))) {
 				outputBuilder.append(this.emojis.get(msg.charAt(i))).append(" ");
-			} else if (msg.charAt(i) >= 'a' && msg.charAt(i) <= 'z') {
+			}
+			else if (msg.charAt(i) >= 'a' && msg.charAt(i) <= 'z') {
 				outputBuilder.append(":regional_indicator_" + msg.charAt(i) + ": ");
 			}
 			else {

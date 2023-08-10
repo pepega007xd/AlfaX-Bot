@@ -3,7 +3,6 @@ package xyz.rtsvk.alfax.webserver;
 import discord4j.core.GatewayDiscordClient;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.util.Config;
-import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
 import xyz.rtsvk.alfax.webserver.actions.*;
 import xyz.rtsvk.alfax.webserver.contentparsing.Content;
@@ -28,7 +27,7 @@ public class RequestHandler implements Runnable {
 	private Map<String, Action> actions;
 	private Config cfg;
 
-	public RequestHandler(Config cfg, Socket s, GatewayDiscordClient client) throws IOException {
+	public RequestHandler(Config cfg, Mqtt mqtt, Socket s, GatewayDiscordClient client) throws IOException {
 		this.cfg = cfg;
 		this.skt = s;
 		this.client = client;
@@ -45,7 +44,7 @@ public class RequestHandler implements Runnable {
 		this.actions.put("channel_message", new SendMessageAction());
 		this.actions.put("direct_message", new DirectMessageAction());
 		if (cfg.getBooleanOrDefault("mqtt-enabled", false))
-			this.actions.put("mqtt_publish", new MqttPublishAction(new Mqtt(cfg, "Alfa-X Bot WebServer", client)));
+			this.actions.put("mqtt_publish", new MqttPublishAction(mqtt));
 	}
 
 	@Override
@@ -54,12 +53,9 @@ public class RequestHandler implements Runnable {
 			this.logger.info("Incoming request from " + this.skt.getRemoteSocketAddress());
 			this.skt.setSoTimeout(10000);
 
-			//String data = readStream(this.in);
-			//this.logger.info(data);
-
 			Request request = Request.parseRequest(this.in, this.supportedContentTypes);
-
 			String message = "Server responeded with an error";
+
 			if (request == null)
 				this.out.println(Response.RESP_500_ERROR);
 
@@ -96,18 +92,5 @@ public class RequestHandler implements Runnable {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private String readStream(InputStream in) throws IOException {
-		StringBuilder sb = new StringBuilder();
-
-		while (in.available() == 0);
-		while (in.available() > 0) {
-			byte[] buf = new byte[64];
-			int read = in.read(buf);
-			sb.append(new String(buf, 0, read));
-		}
-
-		return sb.toString();
 	}
 }

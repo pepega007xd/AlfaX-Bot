@@ -38,7 +38,6 @@ public class MqttPublishAction implements Action {
 			return new ActionResult(Response.RESP_500_ERROR, "MQTT error: " + e.getMessage());
 		}
 
-
 		return new ActionResult(Response.RESP_200_OK, "Message published");
 	}
 }

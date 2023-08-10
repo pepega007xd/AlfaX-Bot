@@ -16,6 +16,7 @@ public class Database {
 	private static boolean initialized;
 	private static String url;
 	private static Logger logger;
+	private static Connection conn;
 
 	public static final byte PERMISSION_ADMIN = 0x01;
 	public static final byte PERMISSION_API_CHANNEL = 0x02;
@@ -29,8 +30,9 @@ public class Database {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			url = "jdbc:mysql://" + user + ":" + password + "@" + host;
+			logger.info("Connecting to database at " + url + "...");
 
-			Connection conn = DriverManager.getConnection(url);
+			conn = DriverManager.getConnection(url);
 			Statement st = conn.createStatement();
 
 			st.addBatch("CREATE DATABASE IF NOT EXISTS `" + db + "`;");
@@ -44,8 +46,6 @@ public class Database {
 			st.executeBatch();
 
 			st.close();
-			conn.close();
-			url += ("/" + db);
 			initialized = true;
 			logger.info("Database wrapper class initialized successfully.");
 		}
@@ -59,8 +59,6 @@ public class Database {
 		if (!initialized) return false;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
-
 			String sql = "INSERT INTO `schedule`(`command`, `description`, `channel`, `guild`, `exec_date`, `exec_time`, `days`) VALUES (";
 			sql += "'" + commandName + "'," +
 					"'" + description + "'," +
@@ -70,8 +68,9 @@ public class Database {
 					"'" + execTime.format(DateTimeFormatter.ISO_LOCAL_TIME) + "'," +
 					"'" + days + "'";
 			sql += ");";
-			conn.createStatement().execute(sql);
-			conn.close();
+			Statement st = conn.createStatement();
+			st.execute(sql);
+			st.close();
 
 			return true;
 		} catch (SQLException e) {
@@ -82,10 +81,10 @@ public class Database {
 
 	public static List<Task> getScheduleFor(LocalDate date) {
 		List<Task> tasks = new ArrayList<>();
-		try {
+		try (Statement st = conn.createStatement();
+			ResultSet result = st.executeQuery("SELECT * FROM `schedule` WHERE `exec_date`='" + date.format(DateTimeFormatter.ISO_LOCAL_DATE) + "';");
+		) {
 			if(!initialized) return tasks;
-			Connection conn = DriverManager.getConnection(url);
-			ResultSet result = conn.createStatement().executeQuery("SELECT * FROM `schedule` WHERE `exec_date`=NULL OR `exec_date`='" + date.format(DateTimeFormatter.ISO_LOCAL_DATE) + "';");
 
 			if (result.isBeforeFirst())
 				while (result.next())
@@ -99,8 +98,6 @@ public class Database {
 							result.getString("days")
 					));
 
-			result.close();
-			conn.close();
 		}
 		catch (SQLException e) {
 			e.printStackTrace();
@@ -117,15 +114,14 @@ public class Database {
 		if (!initialized) return false;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
-
 			String sql = "INSERT INTO `auth`(`id`, `auth_key`, `permissions`) VALUES (";
 			sql += "'" + id + "'," +
 					"'" + hash + "'," +
 					"'" + permissions + "'";
 			sql += ");";
-			conn.createStatement().execute(sql);
-			conn.close();
+			Statement st = conn.createStatement();
+			st.execute(sql);
+			st.close();
 
 			return true;
 		} catch (SQLException e) {
@@ -138,19 +134,19 @@ public class Database {
 		if (!initialized) return false;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
-			ResultSet set = conn.createStatement().executeQuery("SELECT `permissions` FROM `auth` WHERE `id`='" + id + "';");
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `permissions` FROM `auth` WHERE `id`='" + id + "';");
 			if (set.next()) {
 				byte userPermissions = set.getByte("permissions");
 				logger.info("checkin permissions for " + id);
 				set.close();
-				conn.close();
+				st.close();
 				return (userPermissions & permissions) == permissions
 						|| (userPermissions & PERMISSION_ADMIN) == PERMISSION_ADMIN;
 			}
 			else {
 				set.close();
-				conn.close();
+				st.close();
 				logger.warn("User " + id + " not found in database.");
 				return false;
 			}
@@ -165,18 +161,18 @@ public class Database {
 		if (!initialized) return false;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
-			ResultSet set = conn.createStatement().executeQuery("SELECT `permissions` FROM `auth` WHERE `auth_key`='" + key + "';");
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `permissions` FROM `auth` WHERE `auth_key`='" + key + "';");
 			if (set.next()) {
 				byte userPermissions = set.getByte("permissions");
 				set.close();
-				conn.close();
+				st.close();
 				return (userPermissions & permissions) == permissions
 						|| (userPermissions & PERMISSION_ADMIN) == PERMISSION_ADMIN;
 			}
 			else {
 				set.close();
-				conn.close();
+				st.close();
 				logger.warn("User not found in database.");
 				return false;
 			}
@@ -191,7 +187,6 @@ public class Database {
 		if (!initialized) return false;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
 			Statement st = conn.createStatement();
 
 			// check if user exists
@@ -199,7 +194,6 @@ public class Database {
 			if (!set.next()) {
 				set.close();
 				st.close();
-				conn.close();
 				return false;
 			}
 
@@ -209,7 +203,6 @@ public class Database {
 
 			set.close();
 			st.close();
-			conn.close();
 			return true;
 
 		} catch (SQLException e) {
@@ -218,34 +211,10 @@ public class Database {
 		}
 	}
 
-	public static boolean authorizeAPIUser(Object key) {
-		if (key == null) return false;
-		boolean result = false;
-
-		try {
-			if(!initialized) return false;
-			Connection conn = DriverManager.getConnection(url);
-			String query = "SELECT `permissions` FROM `auth` WHERE `auth_key`='" + key + "';";
-			ResultSet set = conn.createStatement().executeQuery(query);
-			if (set.next()) {
-				byte p = set.getByte("permissions");
-				result = (p & PERMISSION_API) == PERMISSION_API || (p & PERMISSION_ADMIN) == PERMISSION_ADMIN;
-			}
-			set.close();
-			conn.close();
-		}
-		catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return result;
-	}
-
 	public static boolean registerSensor(String key, String description, String type, String unit, float min, float max) {
 		if (!initialized) return false;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
-
 			String sql = "INSERT INTO `sensors`(`key`, `description`, `type`, `unit`, `min`, `max`, `value`, `last_updated`) VALUES (";
 			sql += "'" + key + "'," +
 					"'" + description + "'," +
@@ -256,8 +225,10 @@ public class Database {
 					"'0'," +
 					"'" + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + " " + LocalTime.now().format(DateTimeFormatter.ISO_LOCAL_TIME) + "'";
 			sql += ");";
-			conn.createStatement().execute(sql);
-			conn.close();
+
+			Statement st = conn.createStatement();
+			st.execute(sql);
+			st.close();
 
 			return true;
 		} catch (SQLException e) {
@@ -288,17 +259,17 @@ public class Database {
 		if (!initialized) return -1;
 
 		try {
-			Connection conn = DriverManager.getConnection(url);
-			ResultSet set = conn.createStatement().executeQuery("SELECT COUNT(*) FROM `auth` WHERE `permissions` & " + PERMISSION_ADMIN + " = " + PERMISSION_ADMIN + ";");
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT COUNT(*) FROM `auth` WHERE `permissions` & " + PERMISSION_ADMIN + " = " + PERMISSION_ADMIN + ";");
 			if (set.next()) {
 				int count = set.getInt(1);
 				set.close();
-				conn.close();
+				st.close();
 				return count;
 			}
 			else {
 				set.close();
-				conn.close();
+				st.close();
 				return -1;
 			}
 		}

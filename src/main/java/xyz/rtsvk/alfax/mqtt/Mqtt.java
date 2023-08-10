@@ -10,7 +10,9 @@ import xyz.rtsvk.alfax.mqtt.actions.Action;
 import xyz.rtsvk.alfax.mqtt.actions.SendAlertAction;
 import xyz.rtsvk.alfax.mqtt.actions.SensorDataReceivedAction;
 import xyz.rtsvk.alfax.util.Config;
+import xyz.rtsvk.alfax.util.Logger;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,18 +20,21 @@ public class Mqtt extends Thread {
 
 	private GatewayDiscordClient gateway;
 	private MqttClient client;
+	private Logger logger;
 
 	private final String uri;
 	private final String clientid;
 	private String uname;
-	private char[] pwd;
+	private String pwd;
 	private boolean doSubscribe = true;
+	private boolean running = true;
 
 	public Mqtt(Config cfg, String clientid, GatewayDiscordClient gateway) {
 
 		this.uri = cfg.getStringOrDefault("mqtt-uri", null);
-		this.uname = cfg.getStringOrDefault("mqtt-username", null);
-		this.pwd = cfg.getStringOrDefault("mqtt-password", null).toCharArray();
+		this.uname = cfg.getStringOrDefault("mqtt-user", null);
+		this.pwd = cfg.getStringOrDefault("mqtt-password", null);
+		this.logger = new Logger(this.getClass().getSimpleName() + " (" + clientid + ")");
 
 		this.gateway = gateway;
 		this.clientid = clientid;
@@ -40,6 +45,20 @@ public class Mqtt extends Thread {
 	}
 
 	public void publish(String topic, MqttMessage message) throws MqttException {
+		if (this.client == null || !this.client.isConnected()) {
+			this.client = new MqttClient(this.uri, this.clientid, new MemoryPersistence());
+
+			MqttConnectOptions ops = new MqttConnectOptions();
+			ops.setCleanSession(true);
+			if (this.uname != null && this.pwd != null){
+				ops.setUserName(this.uname);
+				ops.setPassword(this.pwd.toCharArray());
+			}
+
+			this.client.connect(ops);
+			this.logger.info("Connected to MQTT broker");
+		}
+
 		this.client.publish(topic, message);
 	}
 
@@ -52,25 +71,33 @@ public class Mqtt extends Thread {
 			ops.setCleanSession(true);
 			if (this.uname != null && this.pwd != null){
 				ops.setUserName(this.uname);
-				ops.setPassword(this.pwd);
+				ops.setPassword(this.pwd.toCharArray());
 			}
 
 			this.client.connect(ops);
+			this.logger.info("Connected to MQTT broker");
 
 			if (this.doSubscribe) {
 				Map<String, Action> actionMap = new HashMap<>();
 
-				actionMap.put("alert", new SendAlertAction());
-				actionMap.put("sensor", new SensorDataReceivedAction());
+				actionMap.put("home/alert", new SendAlertAction());
+				actionMap.put("home/sensor", new SensorDataReceivedAction());
 
 				this.client.setCallback(new MqttHandler(this.gateway, actionMap));
 				for (String topic : actionMap.keySet())
 					this.client.subscribe(topic, 0);
+
 			}
+
+			while (this.running) {}
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	public void stopThread() {
+		this.running = false;
 	}
 
 	public void setDoSubscribe(boolean doSubscribe) {
