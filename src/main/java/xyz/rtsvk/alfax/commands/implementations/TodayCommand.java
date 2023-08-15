@@ -20,8 +20,12 @@ public class TodayCommand implements Command {
 	private JSONObject names;
 
 	public TodayCommand() throws IOException, ParseException {
-		File calendar = new File("calendar.json");
-		this.names = (JSONObject) (new JSONParser().parse(new FileReader(calendar)));
+		InputStream stream = this.getClass().getClassLoader().getResourceAsStream("calendar.json");
+		if (stream == null) throw new FileNotFoundException("calendar.json not found!");
+		Reader reader = new InputStreamReader(stream);
+		this.names = (JSONObject) new JSONParser().parse(reader);
+		reader.close();
+		stream.close();
 	}
 
 	@Override
