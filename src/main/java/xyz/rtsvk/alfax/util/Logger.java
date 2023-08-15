@@ -35,7 +35,7 @@ public class Logger {
 			File file = new File(logFile);
 			file.createNewFile();
 			FileWriter write = new FileWriter(file);
-			write.write(message + "\n");
+			write.append(message).append("\n");
 			write.close();
 		}
 		catch (Exception e) {
