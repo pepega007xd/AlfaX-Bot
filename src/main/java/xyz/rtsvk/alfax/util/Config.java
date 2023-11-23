@@ -88,6 +88,10 @@ public class Config extends LinkedHashMap<String, Object> {
 		config.put("prefix", "!");
 		config.put("scheduler-enabled", "false");
 
+		// Weather API config
+		config.put("weather-api-key", "your_weather_api_key_here");
+		config.put("weather-lang", "en");
+
 		// MySQL config
 		config.put("db-host", "localhost:3306");
 		config.put("db-user", "root");

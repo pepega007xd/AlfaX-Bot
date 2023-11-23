@@ -32,7 +32,7 @@ public class TodayCommand implements Command {
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
 		String displayDate = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL));
 
-		int month = LocalDate.now().getMonthValue();
+		int month = LocalDate.now().getMonthValue()-1;
 		int dayofmonth = LocalDate.now().getDayOfMonth();
 		String[] names = ((JSONObject)this.names.get(month + "")).get(dayofmonth + "").toString().split(" ");
 

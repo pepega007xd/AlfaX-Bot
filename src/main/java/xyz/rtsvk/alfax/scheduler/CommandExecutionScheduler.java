@@ -17,11 +17,13 @@ import java.util.List;
 public class CommandExecutionScheduler implements Runnable {
 
 	private GatewayDiscordClient gateway;
+	private CommandProcessor proc;
 	private Logger logger;
 	private boolean executed;
 
-	public CommandExecutionScheduler(GatewayDiscordClient gateway) {
+	public CommandExecutionScheduler(GatewayDiscordClient gateway, CommandProcessor proc) {
 		this.gateway = gateway;
+		this.proc = proc;
 		this.logger = new Logger(this.getClass());
 		this.executed = false;
 	}
@@ -39,7 +41,7 @@ public class CommandExecutionScheduler implements Runnable {
 			if (tasks.size() > 0) tasks.forEach(e -> {
 				final List<String> commandArgs = new ArrayList<>(Arrays.asList(e.getCommand().split(" ")));
 				String cmdName = commandArgs.remove(0);
-				Command cmd = CommandProcessor.getCommandExecutor(cmdName);
+				Command cmd = proc.getCommandExecutor(cmdName);
 				MessageChannel channel = (MessageChannel) this.gateway.getChannelById(e.getChannel()).block();
 
 				LocalDate execDate = e.getExecDate() != null ? e.getExecDate() : now.toLocalDate();

@@ -18,7 +18,7 @@ public class DirectMessageAction implements Action {
 
 		String userID = request.getProperty("user_id").toString();
 		String msg = request.getProperty("message").toString();
-		if (msg.length() == 0) msg = "Message not supplied";
+		if (msg.isEmpty()) msg = "Message not supplied";
 
 		User user = client.getUserById(Snowflake.of(userID)).block();
 		if (user == null)

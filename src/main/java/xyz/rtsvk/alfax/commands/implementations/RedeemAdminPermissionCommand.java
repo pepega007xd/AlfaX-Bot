@@ -12,7 +12,7 @@ import java.util.List;
 
 public class RedeemAdminPermissionCommand implements Command {
 
-	private Config config;
+	private final Config config;
 
 	public RedeemAdminPermissionCommand(Config config) {
 		this.config = config;
@@ -29,6 +29,11 @@ public class RedeemAdminPermissionCommand implements Command {
 
 		if (adminCount > 0) {
 			channel.createMessage("Tento prikaz moze vykonat iba prvy admin.").block();
+			return;
+		}
+
+		if (!Database.userExists(user.getId().asString())) {
+			channel.createMessage("Neexistujes :skull:").block();
 			return;
 		}
 

@@ -16,7 +16,7 @@ public class SendMessageAction implements Action {
 
 		String channelID = request.getProperty("channel_id").toString();
 		String msg = request.getProperty("message").toString();
-		if (msg.length() == 0)
+		if (msg.isEmpty())
 			return new ActionResult(Response.RESP_400_BAD_REQUEST, "Message is empty");
 
 		client.rest().getChannelById(Snowflake.of(channelID)).createMessage(msg).subscribe();

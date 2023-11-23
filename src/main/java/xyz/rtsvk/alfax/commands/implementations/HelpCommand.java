@@ -12,12 +12,18 @@ import java.util.Map;
 
 public class HelpCommand implements Command {
 
+	private CommandProcessor processor;
+
+	public HelpCommand(CommandProcessor processor) {
+		this.processor = processor;
+	}
+
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Poznam tieto prikazy:```\n");
 
-		final Map<String, Command> cmds = CommandProcessor.getCommands();
+		final Map<String, Command> cmds = this.processor.getCommands();
 		cmds.forEach((key, value) -> {
 			String desc = value.getDescription();
 			if (desc == null) return;                   // if the command does not have a description, hide it

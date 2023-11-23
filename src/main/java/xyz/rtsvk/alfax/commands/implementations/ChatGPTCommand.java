@@ -4,6 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.MessageCreateSpec;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -35,7 +36,8 @@ public class ChatGPTCommand implements Command {
 			if (i != args.size() - 1) message.append(" ");
 		}
 
-		Process proc = Runtime.getRuntime().exec( "python3 askgpt.py " + message);
+		// TODO: Implement a better way to make the API call. This is a temporary solution.
+		Process proc = Runtime.getRuntime().exec( "python3 askgpt.py \"" + message.toString() + "\"");
 		int exitCode = proc.waitFor();
 
 		if (exitCode != 0)
@@ -47,14 +49,7 @@ public class ChatGPTCommand implements Command {
 				output = IOUtils.toString(in, StandardCharsets.UTF_8);
 			}
 			this.logger.info(output);
-			try {
-				JSONObject object = (JSONObject) (new JSONParser().parse(output));
-				channel.createMessage(object.get("content").toString()).block();
-			}
-			catch (ParseException ex) {
-				channel.createMessage("Chyba: " + output).block();
-			}
-
+			channel.createMessage(output).block();
 		}
 
 		// TODO: Use a non-deprecated way to edit the message.
@@ -63,6 +58,6 @@ public class ChatGPTCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Spytaj sa ChatGPT! (Pozor, chvilu trva, kym sa tento prikaz spracuje!)";
+		return "Spytaj sa ChatGPT! (WIP)";
 	}
 }

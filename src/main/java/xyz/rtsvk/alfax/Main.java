@@ -12,6 +12,7 @@ import xyz.rtsvk.alfax.commands.implementations.*;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.scheduler.CommandExecutionScheduler;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
+import xyz.rtsvk.alfax.tasks.TaskTimer;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
@@ -29,8 +30,8 @@ public class Main {
 		// to generate the default config, run the bot as `java -jar jarfile.jar --default-config`
 		if (config.containsKey("default-config")) {
 			String filename = config.getStringOrDefault("default-config", "config.properties.def");
-			Config defaultConfig = Config.defaultConfig();
-			defaultConfig.forEach(config::putIfAbsent);
+			config.remove("default-config");
+			Config.defaultConfig().forEach(config::putIfAbsent);
 			config.write(filename);
 			logger.info("Created default configuration file '" + filename + "'!");
 			return;
@@ -61,29 +62,33 @@ public class Main {
 		final DiscordClient client = DiscordClient.create(config.getString("token"));
 		final GatewayDiscordClient gateway = client.login().block();
 
+		CommandProcessor proc = new CommandProcessor();
+
 		// register all commands
-		CommandProcessor.registerCommand("help", new HelpCommand());
-		CommandProcessor.registerCommand("test", new TestCommand());
-		CommandProcessor.registerCommand("8ball", new FortuneTeller());
-		CommandProcessor.registerCommand("pick", new PickCommand());
-		CommandProcessor.registerCommand("today", new TodayCommand());
-		CommandProcessor.registerCommand("weather", new WeatherCommand(config.getString("weather-api-key")));
-		CommandProcessor.registerCommand("createapiuser", new CreateApiUserCommand());
-		CommandProcessor.registerCommand("bigtext", new BigTextCommand());
-		CommandProcessor.registerCommand("gpt", new ChatGPTCommand());
-		CommandProcessor.registerCommand("mqtt", new MqttPublishCommand(config));
-		CommandProcessor.registerCommand("senreg", new RegisterSensorCommand(prefix));
-		CommandProcessor.registerCommand("register", new CreateUserCommand());
-		CommandProcessor.registerCommand("usermod", new UserPermissionsCommand(config));
-		CommandProcessor.registerCommand("redeem", new RedeemAdminPermissionCommand(config));
-		CommandProcessor.registerCommand("credits", new CreditsCommand());
+		proc.registerCommand("help", new HelpCommand(proc));
+		proc.registerCommand("test", new TestCommand());
+		proc.registerCommand("8ball", new FortuneTeller());
+		proc.registerCommand("pick", new PickCommand());
+		proc.registerCommand("today", new TodayCommand());
+		proc.registerCommand("weather", new WeatherCommand(config.getString("weather-api-key"), config.getString("weather-lang")));
+		proc.registerCommand("createapiuser", new CreateApiUserCommand());
+		proc.registerCommand("bigtext", new BigTextCommand());
+		proc.registerCommand("gpt", new ChatGPTCommand());
+		proc.registerCommand("mqtt", new MqttPublishCommand(config));
+		proc.registerCommand("senreg", new RegisterSensorCommand(prefix));
+		proc.registerCommand("register", new CreateUserCommand());
+		proc.registerCommand("usermod", new UserPermissionsCommand(config));
+		proc.registerCommand("redeem", new RedeemAdminPermissionCommand(config));
+		proc.registerCommand("credits", new CreditsCommand());
+		proc.registerCommand("ac", new SetAnnouncementChannelCommand());
+		proc.registerCommand("schedule", new ScheduleEventCommand());
 
 		// register command aliases
-		CommandProcessor.registerCommandAlias("fortune", "8ball");
+		proc.registerCommandAlias("fortune", "8ball");
 
 		// scheduler
 		if (config.getBooleanOrDefault("scheduler-enabled", false)) {
-			Thread scheduler = new Thread(new CommandExecutionScheduler(gateway));
+			Thread scheduler = new Thread(new CommandExecutionScheduler(gateway, proc));
 			scheduler.start();
 		}
 
@@ -98,6 +103,10 @@ public class Main {
 			Mqtt mqtt = new Mqtt(config, "AlfaX-Bot-Sub", gateway);
 			mqtt.start();
 		}
+
+		// task timer
+		TaskTimer timer = new TaskTimer(gateway, 1000);
+		timer.setEnabled(true);
 
 		gateway.on(MessageCreateEvent.class).subscribe(event -> {
 			try {
@@ -114,7 +123,7 @@ public class Main {
 						try {
 							String cStr = message.getContent().substring(prefix.length());
 							final List<String> commandArgs = new ArrayList<>(Arrays.asList(cStr.split(" ")));
-							Command cmd = CommandProcessor.getCommandExecutor(commandArgs.get(0));
+							Command cmd = proc.getCommandExecutor(commandArgs.get(0));
 
 							if (cmd == null)
 								channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
@@ -128,7 +137,7 @@ public class Main {
 				} else if (msg.startsWith(mention)) {
 					Thread cmd = new Thread(() -> {
 						try {
-							Command c = CommandProcessor.getCommandExecutor("gpt");
+							Command c = proc.getCommandExecutor("gpt");
 							c.handle(user, channel, Arrays.asList(msg.split(" ")), guildId, gateway);
 						} catch (Exception e) {
 							e.printStackTrace();

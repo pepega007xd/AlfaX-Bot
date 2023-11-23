@@ -1,6 +1,8 @@
 package xyz.rtsvk.alfax.util;
 
+import discord4j.common.util.Snowflake;
 import xyz.rtsvk.alfax.scheduler.Task;
+import xyz.rtsvk.alfax.tasks.Event;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -40,7 +42,9 @@ public class Database {
 			st.executeBatch();
 
 			st.addBatch("CREATE TABLE IF NOT EXISTS `system_info` (`vkey` varchar(64), `value` varchar(128), PRIMARY KEY(`vkey`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `guilds` (`guild_id` varchar(128), `announcement_channel` varchar(128), PRIMARY KEY(`guild_id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `schedule` (`id` int AUTO_INCREMENT, `command` varchar(32), `description` text, `channel` varchar(128), `guild` varchar(128), `exec_date` date, `exec_time` varchar(8), `days` varchar(16), PRIMARY KEY(`id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `events`(`id` int AUTO_INCREMENT, `name` varchar(128), `description` text, `time` long, `guild` varchar(128), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `auth` (`id` varchar(128), `auth_key` varchar(128), `permissions` int, PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `sensors`(`id` int AUTO_INCREMENT, `key` varchar(128), `description` text, `type` varchar(32), `unit` varchar(16), `min` float, `max` float, `value` float, `last_updated` datetime, PRIMARY KEY(`id`));");
 			st.executeBatch();
@@ -211,6 +215,57 @@ public class Database {
 		}
 	}
 
+	public static boolean setAnnouncementChannel(Snowflake guild, Snowflake channel) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+
+			// check if guild exists
+			ResultSet set = st.executeQuery("SELECT `announcement_channel` FROM `guilds` WHERE `guild_id`='" + guild.asString() + "';");
+			if (!set.next()) {
+				st.execute("INSERT INTO `guilds`(`guild_id`, `announcement_channel`) VALUES ('" + guild.asString() + "','" + channel.asString() + "');");
+			}
+			else {
+				st.execute("UPDATE `guilds` SET `announcement_channel`='" + channel.asString() + "' WHERE `guild_id`='" + guild.asString() + "';");
+			}
+			set.close();
+			st.close();
+			return true;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static Snowflake getAnnouncementChannel(Snowflake guild) {
+		if (!initialized) return null;
+
+		try {
+			Statement st = conn.createStatement();
+
+			// check if guild exists
+			ResultSet set = st.executeQuery("SELECT `announcement_channel` FROM `guilds` WHERE `guild_id`='" + guild.asString() + "';");
+			if (!set.next()) {
+				set.close();
+				st.close();
+				return null;
+			}
+
+			// update permissions
+			String channel = set.getString("announcement_channel");
+
+			set.close();
+			st.close();
+			return Snowflake.of(channel);
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
 	public static boolean registerSensor(String key, String description, String type, String unit, float min, float max) {
 		if (!initialized) return false;
 
@@ -233,6 +288,29 @@ public class Database {
 			return true;
 		} catch (SQLException e) {
 			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean addEvent(String name, String description, String time, Snowflake guild) {
+		if (!initialized) return false;
+
+		try {
+			String sql = "INSERT INTO `events`(`name`, `description`, `time`, `guild`) VALUES (";
+			sql += "'" + name + "'," +
+					"'" + description + "'," +
+					"'" + time + "'," +
+					"'" + guild.asString() + "'";
+			sql += ");";
+
+			Statement st = conn.createStatement();
+			st.execute(sql);
+			st.close();
+
+			return true;
+		}
+		catch (Exception e) {
+			e.printStackTrace(System.out);
 			return false;
 		}
 	}
@@ -276,6 +354,54 @@ public class Database {
 		catch (SQLException e) {
 			e.printStackTrace();
 			return -1;
+		}
+	}
+
+	public static List<Event> getEvents() {
+		if (!initialized) return null;
+
+		List<Event> events = new ArrayList<>();
+		try (Statement st = conn.createStatement();
+			ResultSet result = st.executeQuery("SELECT * FROM `events`;");
+		) {
+			if (result.isBeforeFirst())
+				while (result.next())
+					events.add(new Event(
+							result.getInt("id"),
+							result.getString("name"),
+							result.getString("description"),
+							result.getString("time"),
+							result.getString("guild")
+					));
+			return events;
+		}
+		catch (SQLException e) {
+			e.printStackTrace(System.out);
+			return null;
+		}
+	}
+
+	public static boolean userExists(String userId) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT COUNT(*) FROM `auth` WHERE `id`='" + userId + "';");
+			if (set.next()) {
+				int count = set.getInt(1);
+				set.close();
+				st.close();
+				return count > 0;
+			}
+			else {
+				set.close();
+				st.close();
+				return false;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
 		}
 	}
 

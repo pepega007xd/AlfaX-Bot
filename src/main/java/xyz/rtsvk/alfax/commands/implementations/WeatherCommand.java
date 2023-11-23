@@ -5,6 +5,7 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import xyz.rtsvk.alfax.commands.Command;
@@ -20,9 +21,11 @@ import java.util.List;
 public class WeatherCommand implements Command {
 
 	private final String apiKey;
+	private final String lang;
 
-	public WeatherCommand(String apiKey) {
+	public WeatherCommand(String apiKey, String lang) {
 		this.apiKey = apiKey;
+		this.lang = lang;
 	}
 
 	@Override
@@ -33,7 +36,7 @@ public class WeatherCommand implements Command {
 			String cityName = String.join(" ", args.subList(1, args.size()));
 
 			// fetch the weather data
-			URL url = new URL("http://api.openweathermap.org/data/2.5/weather?appid=" + this.apiKey + "&q=" + cityName + "&units=metric");
+			URL url = new URL("http://api.openweathermap.org/data/2.5/weather?appid=" + this.apiKey + "&q=" + cityName + "&units=metric&lang=" + this.lang);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setDoInput(true);
 			BufferedInputStream input = new BufferedInputStream(conn.getInputStream());
@@ -48,6 +51,7 @@ public class WeatherCommand implements Command {
 
 			JSONObject main = (JSONObject) json.get("main");
 			JSONObject wind = (JSONObject) json.get("wind");
+			JSONObject weather = (JSONObject) ((JSONArray) json.get("weather")).get(0);
 			double temp = Double.parseDouble(String.valueOf(main.get("temp")));
 			double feelsLike = Double.parseDouble(String.valueOf(main.get("feels_like")));
 			int humidity = Integer.parseInt(String.valueOf(main.get("humidity")));
@@ -58,9 +62,10 @@ public class WeatherCommand implements Command {
 			conn.disconnect();
 
 			EmbedCreateSpec table = EmbedCreateSpec.builder()
-					.author("Powered by OpenWeatherMap.com", "https://www.openweathermap.org/", null)
+					.author("Powered by OpenWeatherMap.com", "https://www.openweathermap.org/", "http://openweathermap.org/img/w/" + weather.get("icon") + ".png")
 					.title("Aktualne pocasie pre " + cityName)
-					.image("http://openweathermap.org/img/w/" + json.get("icon") + ".png")
+					.addField("Stav:", weather.get("main").toString(), true)
+					.addField("Popis:", weather.get("description").toString(), true)
 					.addField("Teplota:", temp + " °C (pocitovo " + feelsLike + ")", false)
 					.addField("Najvyssia denna teplota: ", main.get("temp_max") + " °C", false)
 					.addField("Najnizsia denna teplota: ", main.get("temp_min") + " °C", false)
@@ -83,6 +88,6 @@ public class WeatherCommand implements Command {
 	}
 
 	private double kphToKts(double mps) {
-		return mps * 3.6 * 1.852;
+		return (mps * 3.6) / 1.852;
 	}
 }

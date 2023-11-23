@@ -1,14 +1,12 @@
 package xyz.rtsvk.alfax.util;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintStream;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Logger {
 
-	public static final PrintStream STDOUT = System.out;
+	public static PrintStream STDOUT = System.out, STDERR = System.err;
 	private static String logFile;
 	private String tag;
 
@@ -34,8 +32,11 @@ public class Logger {
 		try {
 			File file = new File(logFile);
 			file.createNewFile();
-			FileWriter write = new FileWriter(file);
-			write.append(message).append("\n");
+			FileWriter write = new FileWriter(file, true);
+			BufferedWriter writer = new BufferedWriter(write);
+			writer.write(message);
+			writer.newLine();
+			writer.close();
 			write.close();
 		}
 		catch (Exception e) {
