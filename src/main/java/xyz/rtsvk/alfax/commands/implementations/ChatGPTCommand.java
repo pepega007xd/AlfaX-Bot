@@ -4,11 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
-import discord4j.core.spec.MessageCreateSpec;
 import org.apache.commons.io.IOUtils;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Logger;
 
@@ -37,7 +33,7 @@ public class ChatGPTCommand implements Command {
 		}
 
 		// TODO: Implement a better way to make the API call. This is a temporary solution.
-		Process proc = Runtime.getRuntime().exec( "python3 askgpt.py \"" + message.toString() + "\"");
+		Process proc = Runtime.getRuntime().exec( "python3 askgpt.py \"" + message + "\"");
 		int exitCode = proc.waitFor();
 
 		if (exitCode != 0)
@@ -58,6 +54,11 @@ public class ChatGPTCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Spytaj sa ChatGPT! (WIP)";
+		return "Spytaj sa ChatGPT!";
+	}
+
+	@Override
+	public String getUsage() {
+		return "gpt <sprava>";
 	}
 }

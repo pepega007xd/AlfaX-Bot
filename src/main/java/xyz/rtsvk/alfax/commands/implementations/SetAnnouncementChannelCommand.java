@@ -39,4 +39,9 @@ public class SetAnnouncementChannelCommand implements Command {
 	public String getDescription() {
 		return "Set the channel where the bot will send announcements.";
 	}
+
+	@Override
+	public String getUsage() {
+		return "ac <channel id>";
+	}
 }

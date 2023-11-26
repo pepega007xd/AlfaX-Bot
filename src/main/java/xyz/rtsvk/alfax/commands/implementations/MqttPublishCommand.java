@@ -18,8 +18,8 @@ import java.util.List;
 public class MqttPublishCommand implements Command {
 
 	private Mqtt client;
-	private Logger logger;
-	private String prefix;
+	private final Logger logger;
+	private final String prefix;
 
 	public MqttPublishCommand(Config cfg) throws MqttException {
 		this.logger = new Logger(this.getClass());
@@ -60,5 +60,10 @@ public class MqttPublishCommand implements Command {
 	@Override
 	public String getDescription() {
 		return "Mqtt publish command";
+	}
+
+	@Override
+	public String getUsage() {
+		return "mqtt <topic> <message>";
 	}
 }

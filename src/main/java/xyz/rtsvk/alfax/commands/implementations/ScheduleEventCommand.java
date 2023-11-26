@@ -9,7 +9,6 @@ import xyz.rtsvk.alfax.util.Database;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 
@@ -36,5 +35,10 @@ public class ScheduleEventCommand implements Command {
 	@Override
 	public String getDescription() {
 		return "Schedule an event to be reminded of.";
+	}
+
+	@Override
+	public String getUsage() {
+		return "schedule <event name> <event time> <event description>";
 	}
 }

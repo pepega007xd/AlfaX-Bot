@@ -11,8 +11,8 @@ import java.util.List;
 
 public class BigTextCommand implements Command {
 
-	private HashMap<Character, String> emojis;
-	private HashMap<Character, Character> normalizer;
+	private final HashMap<Character, String> emojis;
+	private final HashMap<Character, Character> normalizer;
 
 	public BigTextCommand() {
 		this.emojis = new HashMap<>();
@@ -81,7 +81,7 @@ public class BigTextCommand implements Command {
 				outputBuilder.append(this.emojis.get(msg.charAt(i))).append(" ");
 			}
 			else if (msg.charAt(i) >= 'a' && msg.charAt(i) <= 'z') {
-				outputBuilder.append(":regional_indicator_" + msg.charAt(i) + ": ");
+				outputBuilder.append(":regional_indicator_").append(msg.charAt(i)).append(": ");
 			}
 			else {
 				outputBuilder.append(msg.charAt(i));
@@ -94,5 +94,10 @@ public class BigTextCommand implements Command {
 	@Override
 	public String getDescription() {
 		return "Napise Tvoju spravu velkymi pismenami.";
+	}
+
+	@Override
+	public String getUsage() {
+		return "bigtext <sprava>";
 	}
 }

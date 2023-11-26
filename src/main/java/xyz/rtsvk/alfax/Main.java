@@ -71,7 +71,6 @@ public class Main {
 		proc.registerCommand("pick", new PickCommand());
 		proc.registerCommand("today", new TodayCommand());
 		proc.registerCommand("weather", new WeatherCommand(config.getString("weather-api-key"), config.getString("weather-lang")));
-		proc.registerCommand("createapiuser", new CreateApiUserCommand());
 		proc.registerCommand("bigtext", new BigTextCommand());
 		proc.registerCommand("gpt", new ChatGPTCommand());
 		proc.registerCommand("mqtt", new MqttPublishCommand(config));
@@ -129,7 +128,7 @@ public class Main {
 								channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
 							else cmd.handle(user, channel, commandArgs, guildId, gateway);
 						} catch (Exception e) {
-							e.printStackTrace();
+							e.printStackTrace(System.out);
 							channel.createMessage("**:x: " + e.getMessage() + "**").block();
 						}
 					});
@@ -140,7 +139,7 @@ public class Main {
 							Command c = proc.getCommandExecutor("gpt");
 							c.handle(user, channel, Arrays.asList(msg.split(" ")), guildId, gateway);
 						} catch (Exception e) {
-							e.printStackTrace();
+							e.printStackTrace(System.out);
 							channel.createMessage("**:x: Nastala neocakavana chyba. Prosim, skontrolujte standardny vystup pre viac informacii.**").block();
 						}
 					});

@@ -90,4 +90,9 @@ public class WeatherCommand implements Command {
 	private double kphToKts(double mps) {
 		return (mps * 3.6) / 1.852;
 	}
+
+	@Override
+	public String getUsage() {
+		return "weather <mesto>";
+	}
 }

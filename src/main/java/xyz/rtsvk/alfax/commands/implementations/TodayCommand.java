@@ -17,7 +17,7 @@ import java.util.List;
 
 public class TodayCommand implements Command {
 
-	private JSONObject names;
+	private final JSONObject names;
 
 	public TodayCommand() throws IOException, ParseException {
 		InputStream stream = this.getClass().getClassLoader().getResourceAsStream("calendar.json");
@@ -41,11 +41,16 @@ public class TodayCommand implements Command {
 			name.append(n.replace(",", "")).append("\n");
 		name.append("```");
 
-		channel.createMessage("**Dnes je " + displayDate + ". Meniny majú:** " + name.toString()).block();
+		channel.createMessage("**Dnes je " + displayDate + ". Meniny majú:** " + name).block();
 	}
 
 	@Override
 	public String getDescription() {
 		return "Vypise dnesny den v tyzdni, datum a meniny.";
+	}
+
+	@Override
+	public String getUsage() {
+		return "today";
 	}
 }

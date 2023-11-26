@@ -14,7 +14,7 @@ import java.util.List;
 
 public class RegisterSensorCommand implements Command {
 
-	private String prefix;
+	private final String prefix;
 
 	public RegisterSensorCommand(String prefix) {
 		this.prefix = prefix;
@@ -61,5 +61,10 @@ public class RegisterSensorCommand implements Command {
 	@Override
 	public String getDescription() {
 		return "Register sensor command";
+	}
+
+	@Override
+	public String getUsage() {
+		return "senreg <type> <unit> <min> <max>";
 	}
 }

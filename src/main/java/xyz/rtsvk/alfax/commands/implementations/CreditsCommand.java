@@ -35,4 +35,9 @@ public class CreditsCommand implements Command {
 	public String getDescription() {
 		return null;
 	}
+
+	@Override
+	public String getUsage() {
+		return "credits";
+	}
 }

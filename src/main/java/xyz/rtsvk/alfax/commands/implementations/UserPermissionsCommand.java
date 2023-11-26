@@ -2,7 +2,6 @@ package xyz.rtsvk.alfax.commands.implementations;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
@@ -13,7 +12,7 @@ import java.util.List;
 
 public class UserPermissionsCommand implements Command {
 
-	private Config cfg;
+	private final Config cfg;
 
 	public UserPermissionsCommand(Config cfg) {
 		this.cfg = cfg;
@@ -50,5 +49,10 @@ public class UserPermissionsCommand implements Command {
 	@Override
 	public String getDescription() {
 		return "Edit user permissions. Admin only.";
+	}
+
+	@Override
+	public String getUsage() {
+		return "usermod <id> <permissions>";
 	}
 }

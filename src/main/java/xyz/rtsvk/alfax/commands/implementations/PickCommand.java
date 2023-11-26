@@ -24,4 +24,9 @@ public class PickCommand implements Command {
 	public String getDescription() {
 		return "Nahodne vyberie jednu z ponukanych moznosti.";
 	}
+
+	@Override
+	public String getUsage() {
+		return "pick <moznost1> <moznost2> [moznost3] [moznost4] [...]";
+	}
 }

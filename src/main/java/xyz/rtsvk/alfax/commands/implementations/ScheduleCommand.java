@@ -14,7 +14,6 @@ public class ScheduleCommand implements Command {
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
 		if (!user.getTag().equals("Jastrobaron#0262")) {
 			channel.createMessage("**Dobry pokus zmrde. Toto ty nemozes :)**").block();
-			return;
 		}
 
 
@@ -23,5 +22,10 @@ public class ScheduleCommand implements Command {
 	@Override
 	public String getDescription() {
 		return "Add a scheduled command.";
+	}
+
+	@Override
+	public String getUsage() {
+		return "schedule <command> <time>";
 	}
 }

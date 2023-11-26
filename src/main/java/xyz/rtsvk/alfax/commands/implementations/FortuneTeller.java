@@ -36,4 +36,9 @@ public class FortuneTeller implements Command {
 	public String getDescription() {
 		return "Spytaj sa otazku typu ano/nie a dostanes odpoved!";
 	}
+
+	@Override
+	public String getUsage() {
+		return "8ball <otazka>";
+	}
 }

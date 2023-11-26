@@ -53,4 +53,9 @@ public class RedeemAdminPermissionCommand implements Command {
 	public String getDescription() {
 		return "Redeem admin permission token.";
 	}
+
+	@Override
+	public String getUsage() {
+		return "redeem <token>";
+	}
 }

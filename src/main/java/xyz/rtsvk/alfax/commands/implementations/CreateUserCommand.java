@@ -4,6 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.object.entity.channel.PrivateChannel;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Database;
 
@@ -15,11 +16,22 @@ public class CreateUserCommand implements Command {
 		String userId = user.getId().asString();
 		String hash = Database.hash(userId);
 		Database.addUser(userId, hash, 0);
-		user.getPrivateChannel().block().createMessage("Tvoj API kluc je: " + hash).block();
+		PrivateChannel dm = user.getPrivateChannel().block();
+		if (dm != null) {
+			dm.createMessage("Tvoj token je: " + hash).block();
+		}
+		else {
+			channel.createMessage("Nastala chyba pri generovani tokenu. Kontaktujte prosim vyvojara.").block();
+		}
 	}
 
 	@Override
 	public String getDescription() {
 		return "Pouzivatel, ktory napise tento prikaz, si vyziada pristup k API.";
+	}
+
+	@Override
+	public String getUsage() {
+		return "register";
 	}
 }

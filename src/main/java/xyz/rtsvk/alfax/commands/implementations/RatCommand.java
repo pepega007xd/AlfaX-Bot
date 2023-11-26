@@ -24,4 +24,9 @@ public class RatCommand implements Command {
 	public String getDescription() {
 		return null;
 	}
+
+	@Override
+	public String getUsage() {
+		return null;
+	}
 }

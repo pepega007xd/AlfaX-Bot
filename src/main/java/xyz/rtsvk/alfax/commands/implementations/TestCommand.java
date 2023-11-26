@@ -18,4 +18,9 @@ public class TestCommand implements Command {
 	public String getDescription() {
 		return "Skusobny prikaz na overenie funkcnosti driveru.";
 	}
+
+	@Override
+	public String getUsage() {
+		return "test";
+	}
 }
