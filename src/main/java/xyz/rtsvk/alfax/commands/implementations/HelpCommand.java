@@ -8,7 +8,6 @@ import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 
 import java.util.List;
-import java.util.Map;
 
 public class HelpCommand implements Command {
 
@@ -24,11 +23,11 @@ public class HelpCommand implements Command {
 
 		if (args.isEmpty()) {
 			sb.append("Poznam tieto prikazy:```\n");
-			final Map<String, Command> cmds = this.processor.getCommands();
-			cmds.forEach((key, value) -> {
-				String desc = value.getDescription();
+			final List<Command> cmds = this.processor.getCommands();
+			cmds.forEach(e -> {
+				String desc = e.getDescription();
 				if (desc == null) return;                   // if the command does not have a description, hide it
-				sb.append(key).append(" - ").append(desc).append('\n');
+				sb.append(e.getName()).append(" - ").append(desc).append('\n');
 			});
 			sb.append("```");
 			channel.createMessage(sb.toString()).block();
@@ -40,9 +39,16 @@ public class HelpCommand implements Command {
 				return;
 			}
 			sb.append("```\nPouzitie: ").append(command.getUsage()).append('\n');
-			sb.append("Popis: ").append(command.getDescription()).append("```");
+			sb.append("Popis: ").append(command.getDescription()).append('\n');
+			sb.append("Aliasy: ").append(String.join(", ", command.getAliases()));
+			sb.append("\n```");
 			channel.createMessage(sb.toString()).block();
 		}
+	}
+
+	@Override
+	public String getName() {
+		return "help";
 	}
 
 	@Override
@@ -53,5 +59,10 @@ public class HelpCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "help [prikaz]";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("manual");
 	}
 }

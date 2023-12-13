@@ -8,7 +8,7 @@ public class Logger {
 
 	public static PrintStream STDOUT = System.out, STDERR = System.err;
 	private static String logFile;
-	private String tag;
+	private final String tag;
 
 	public static void setLogFile(String fileName) {
 		logFile = fileName;
@@ -24,7 +24,7 @@ public class Logger {
 
 	private static void print(String tag, String message, String severity) {
 		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-		message = timestamp + " " + severity + " at " + tag + " -> " + message;
+		message = format(timestamp) + " " + severity + " at " + tag + " -> " + message;
 
 		System.out.println(message);
 
@@ -42,6 +42,13 @@ public class Logger {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private static String format(String timestamp) {
+		StringBuilder ts = new StringBuilder(timestamp.substring(0, 23));
+		while (ts.length() <= 23)
+			ts.append('0');
+		return ts.toString();
 	}
 
 	public static void info(String tag, String msg) {

@@ -40,6 +40,11 @@ public class RegisterSensorCommand implements Command {
 		else channel.createMessage("Failed to register sensor. Please contact developer.").block();
 	}
 
+	@Override
+	public String getName() {
+		return "register_sensor";
+	}
+
 	private String generateKey(int length) throws NoSuchAlgorithmException {
 
 		StringBuilder input = new StringBuilder();
@@ -47,7 +52,7 @@ public class RegisterSensorCommand implements Command {
 			input.append((char) (Math.random() * 26 + 97));
 		}
 
-		String result = input.toString();
+		String result = "";
 		MessageDigest md = MessageDigest.getInstance("SHA-512");
 		md.update(input.toString().getBytes());
 		BigInteger hash = new BigInteger(1, md.digest());
@@ -66,5 +71,10 @@ public class RegisterSensorCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "senreg <type> <unit> <min> <max>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("senreg");
 	}
 }

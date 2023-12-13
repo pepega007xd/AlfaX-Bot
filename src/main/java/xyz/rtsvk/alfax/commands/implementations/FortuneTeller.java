@@ -33,6 +33,11 @@ public class FortuneTeller implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "8ball";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Spytaj sa otazku typu ano/nie a dostanes odpoved!";
 	}
@@ -40,5 +45,10 @@ public class FortuneTeller implements Command {
 	@Override
 	public String getUsage() {
 		return "8ball <otazka>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("8b", "fortune");
 	}
 }

@@ -63,27 +63,25 @@ public class Main {
 		final GatewayDiscordClient gateway = client.login().block();
 
 		CommandProcessor proc = new CommandProcessor();
+		proc.setFallback(new HelpCommand(proc));
 
 		// register all commands
-		proc.registerCommand("help", new HelpCommand(proc));
-		proc.registerCommand("test", new TestCommand());
-		proc.registerCommand("8ball", new FortuneTeller());
-		proc.registerCommand("pick", new PickCommand());
-		proc.registerCommand("today", new TodayCommand());
-		proc.registerCommand("weather", new WeatherCommand(config.getString("weather-api-key"), config.getString("weather-lang")));
-		proc.registerCommand("bigtext", new BigTextCommand());
-		proc.registerCommand("gpt", new ChatGPTCommand());
-		proc.registerCommand("mqtt", new MqttPublishCommand(config));
-		proc.registerCommand("senreg", new RegisterSensorCommand(prefix));
-		proc.registerCommand("register", new CreateUserCommand());
-		proc.registerCommand("usermod", new UserPermissionsCommand(config));
-		proc.registerCommand("redeem", new RedeemAdminPermissionCommand(config));
-		proc.registerCommand("credits", new CreditsCommand());
-		proc.registerCommand("ac", new SetAnnouncementChannelCommand());
-		proc.registerCommand("schedule", new ScheduleEventCommand());
-
-		// register command aliases
-		proc.registerCommandAlias("fortune", "8ball");
+		proc.registerCommand(new HelpCommand(proc));
+		proc.registerCommand(new TestCommand());
+		proc.registerCommand(new FortuneTeller());
+		proc.registerCommand(new PickCommand());
+		proc.registerCommand(new TodayCommand());
+		proc.registerCommand(new WeatherCommand(config));
+		proc.registerCommand(new BigTextCommand());
+		proc.registerCommand(new ChatGPTCommand(config));
+		proc.registerCommand(new MqttPublishCommand(config));
+		proc.registerCommand(new RegisterSensorCommand(prefix));
+		proc.registerCommand(new CreateUserCommand());
+		proc.registerCommand(new UserPermissionsCommand(config));
+		proc.registerCommand(new RedeemAdminPermissionCommand(config));
+		proc.registerCommand(new CreditsCommand());
+		proc.registerCommand(new SetAnnouncementChannelCommand());
+		proc.registerCommand(new ScheduleEventCommand());
 
 		// scheduler
 		if (config.getBooleanOrDefault("scheduler-enabled", false)) {
@@ -122,7 +120,7 @@ public class Main {
 						try {
 							String cStr = message.getContent().substring(prefix.length());
 							final List<String> commandArgs = new ArrayList<>(Arrays.asList(cStr.split(" ")));
-							Command cmd = proc.getCommandExecutor(commandArgs.get(0));
+							Command cmd = proc.getCommandExecutor(commandArgs.remove(0));
 
 							if (cmd == null)
 								channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();

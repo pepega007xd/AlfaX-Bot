@@ -33,6 +33,11 @@ public class ScheduleEventCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "schedule";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Schedule an event to be reminded of.";
 	}
@@ -40,5 +45,10 @@ public class ScheduleEventCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "schedule <event name> <event time> <event description>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }

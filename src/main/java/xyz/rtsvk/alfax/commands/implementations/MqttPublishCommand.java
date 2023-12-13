@@ -21,7 +21,7 @@ public class MqttPublishCommand implements Command {
 	private final Logger logger;
 	private final String prefix;
 
-	public MqttPublishCommand(Config cfg) throws MqttException {
+	public MqttPublishCommand(Config cfg) {
 		this.logger = new Logger(this.getClass());
 		this.prefix = cfg.getString("prefix");
 
@@ -58,6 +58,11 @@ public class MqttPublishCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "mqtt-publish";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Mqtt publish command";
 	}
@@ -65,5 +70,10 @@ public class MqttPublishCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "mqtt <topic> <message>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("mqtt-pub", "pub");
 	}
 }

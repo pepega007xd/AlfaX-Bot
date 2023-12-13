@@ -54,7 +54,7 @@ public class Config extends LinkedHashMap<String, Object> {
 		Config cfg = new Config();
 
 		for (String arg : args) {
-			if (arg.length() == 0) continue;
+			if (arg.isEmpty()) continue;
 
 			if (checkPrefix) {
 				if (!arg.startsWith(ARG_PREFIX)) continue;
@@ -97,6 +97,10 @@ public class Config extends LinkedHashMap<String, Object> {
 		config.put("db-user", "root");
 		config.put("db-password", "password");
 		config.put("db-name", "discord");
+
+		// OpenAI API config
+		config.put("openai-api-key", "your_openai_api_key_here");
+		config.put("openai-model", "gpt-3.5-turbo");
 
 		// HTTP server config
 		config.put("webserver-port", "8080");

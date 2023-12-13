@@ -12,12 +12,17 @@ import java.util.Random;
 public class PickCommand implements Command {
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
-		if (args.size() > 1) {
+		if (!args.isEmpty()) {
 			Random random = new Random();
 			int index = random.nextInt(args.size()-1);
 			channel.createMessage("**" + user.getMention() + ", " + args.get(index+1) + "**").block();
 		}
 		else channel.createMessage("**Potrebujem minimalne 2 moznosti, aby som mohol rozhodnnut!**").block();
+	}
+
+	@Override
+	public String getName() {
+		return "pick";
 	}
 
 	@Override
@@ -28,5 +33,10 @@ public class PickCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "pick <moznost1> <moznost2> [moznost3] [moznost4] [...]";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("choose");
 	}
 }

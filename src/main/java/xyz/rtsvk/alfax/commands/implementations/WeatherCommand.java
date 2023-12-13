@@ -9,6 +9,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.Config;
 
 import java.io.BufferedInputStream;
 import java.net.HttpURLConnection;
@@ -23,9 +24,9 @@ public class WeatherCommand implements Command {
 	private final String apiKey;
 	private final String lang;
 
-	public WeatherCommand(String apiKey, String lang) {
-		this.apiKey = apiKey;
-		this.lang = lang;
+	public WeatherCommand(Config config) {
+		this.apiKey = config.getString("weather-api-key");
+		this.lang = config.getString("weather-lang");
 	}
 
 	@Override
@@ -33,7 +34,7 @@ public class WeatherCommand implements Command {
 		DecimalFormat f = new DecimalFormat("##.00");
 
 		try {
-			String cityName = String.join(" ", args.subList(1, args.size()));
+			String cityName = String.join(" ", args);
 
 			// fetch the weather data
 			URL url = new URL("http://api.openweathermap.org/data/2.5/weather?appid=" + this.apiKey + "&q=" + cityName + "&units=metric&lang=" + this.lang);
@@ -83,6 +84,11 @@ public class WeatherCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "weather";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Zobrazi aktualne pocasie pre zadanu oblast.";
 	}
@@ -94,5 +100,10 @@ public class WeatherCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "weather <mesto>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }

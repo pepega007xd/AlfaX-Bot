@@ -4,24 +4,25 @@ import java.util.*;
 
 public class CommandProcessor {
 
-	private Map<String, Command> cmds = new HashMap<>();
-	private Map<String, String> aliases = new HashMap<>();
+	private final List<Command> cmds = new ArrayList<>();
+	private Command fallback = null;
 
 	public Command getCommandExecutor(String command) {
-		String orig = ""; // there might be a chain of aliases, so let's get to the root command
-		while ((orig = aliases.get(command)) != null) command = orig;
-		return cmds.get(command);
+		return this.cmds.stream()
+				.filter(cmd -> cmd.getName().equals(command) || cmd.getAliases().contains(command))
+				.findFirst()
+				.orElse(this.fallback);
 	}
 
-	public void registerCommand(String commandName, Command callback) {
-		cmds.put(commandName, callback);
+	public void registerCommand(Command command) {
+		this.cmds.add(command);
 	}
 
-	public void registerCommandAlias(String alias, String originalCommand) {
-		aliases.put(alias, originalCommand);
+	public void setFallback(Command command) {
+		this.fallback = command;
 	}
 
-	public Map<String, Command> getCommands() {
+	public List<Command> getCommands() {
 		return cmds;
 	}
 }

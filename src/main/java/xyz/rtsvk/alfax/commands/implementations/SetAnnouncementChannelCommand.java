@@ -20,12 +20,12 @@ public class SetAnnouncementChannelCommand implements Command {
 		}
 
 		// syntax: ac <channel id>
-		if (args.size() < 2) {
+		if (args.isEmpty()) {
 			channel.createMessage("Syntax: setannouncementchannel <channel id>").block();
 			return;
 		}
 
-		String channelID = args.get(1);
+		String channelID = args.get(0);
 		if (channelID.isEmpty()) {
 			channel.createMessage("Channel ID is empty").block();
 			return;
@@ -36,6 +36,11 @@ public class SetAnnouncementChannelCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "setannouncementchannel";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Set the channel where the bot will send announcements.";
 	}
@@ -43,5 +48,10 @@ public class SetAnnouncementChannelCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "ac <channel id>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("ac");
 	}
 }

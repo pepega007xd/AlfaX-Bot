@@ -26,6 +26,11 @@ public class CreateUserCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "register";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Pouzivatel, ktory napise tento prikaz, si vyziada pristup k API.";
 	}
@@ -33,5 +38,10 @@ public class CreateUserCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "register";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("reg");
 	}
 }

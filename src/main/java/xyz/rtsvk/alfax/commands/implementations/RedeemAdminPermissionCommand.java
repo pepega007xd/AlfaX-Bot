@@ -50,6 +50,11 @@ public class RedeemAdminPermissionCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "redeem";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Redeem admin permission token.";
 	}
@@ -57,5 +62,10 @@ public class RedeemAdminPermissionCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "redeem <token>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }

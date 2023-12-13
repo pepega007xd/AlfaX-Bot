@@ -45,6 +45,11 @@ public class TodayCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "today";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Vypise dnesny den v tyzdni, datum a meniny.";
 	}
@@ -52,5 +57,10 @@ public class TodayCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "today";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }

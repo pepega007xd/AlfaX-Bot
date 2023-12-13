@@ -62,13 +62,10 @@ public class BigTextCommand implements Command {
 
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
-		StringBuilder messageBuilder = new StringBuilder();
-		for (int i = 1; i < args.size(); i++) {
-			messageBuilder.append(args.get(i)).append(" ");
-		}
+		String message = String.join(" ", args);
 
 		// normalize characters
-		messageBuilder = new StringBuilder(messageBuilder.toString().toLowerCase());
+		StringBuilder messageBuilder = new StringBuilder(message.toLowerCase());
 		for (int i = 0; i < messageBuilder.length(); i++) {
 			if (this.normalizer.containsKey(messageBuilder.charAt(i)))
 				messageBuilder.setCharAt(i, this.normalizer.get(messageBuilder.charAt(i)));
@@ -92,6 +89,11 @@ public class BigTextCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "bigtext";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Napise Tvoju spravu velkymi pismenami.";
 	}
@@ -99,5 +101,10 @@ public class BigTextCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "bigtext <sprava>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }

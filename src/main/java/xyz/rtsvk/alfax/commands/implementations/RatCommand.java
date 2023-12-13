@@ -21,6 +21,11 @@ public class RatCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "rat";
+	}
+
+	@Override
 	public String getDescription() {
 		return null;
 	}
@@ -28,5 +33,10 @@ public class RatCommand implements Command {
 	@Override
 	public String getUsage() {
 		return null;
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("patkan");
 	}
 }

@@ -9,8 +9,8 @@ import java.util.List;
 
 public interface Command {
 	void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception;
-
+	String getName();
 	String getDescription();
-
 	String getUsage();
+	List<String> getAliases();
 }

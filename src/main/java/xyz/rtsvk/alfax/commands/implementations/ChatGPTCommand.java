@@ -1,30 +1,31 @@
 package xyz.rtsvk.alfax.commands.implementations;
 
+import com.theokanning.openai.completion.chat.ChatCompletionRequest;
+import com.theokanning.openai.completion.chat.ChatMessage;
+import com.theokanning.openai.service.OpenAiService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
-import org.apache.commons.io.IOUtils;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Logger;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class ChatGPTCommand implements Command {
 
 	private final Logger logger;
+	private final Config config;
 
-	public ChatGPTCommand() {
+	public ChatGPTCommand(Config config) {
 		this.logger = new Logger(this.getClass());
+		this.config = config;
 	}
 
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
-
-		// Message channelMessage = channel.createMessage("Cakam na odpoved...").block();
-		// MessageEditSpec spec = MessageEditSpec.builder().build();
 
 		StringBuilder message = new StringBuilder();
 		for (int i = 1; i < args.size(); i++) {
@@ -32,24 +33,27 @@ public class ChatGPTCommand implements Command {
 			if (i != args.size() - 1) message.append(" ");
 		}
 
-		// TODO: Implement a better way to make the API call. This is a temporary solution.
-		Process proc = Runtime.getRuntime().exec( "python3 askgpt.py \"" + message + "\"");
-		int exitCode = proc.waitFor();
-
-		if (exitCode != 0)
-			channel.createMessage("Chyba: Proces skoncil s kodom " + proc.exitValue()).block();
-		else {
-			// read the input
-			String output = "";
-			try (InputStream in = proc.getInputStream()) {
-				output = IOUtils.toString(in, StandardCharsets.UTF_8);
-			}
-			this.logger.info(output);
-			channel.createMessage(output).block();
+		Message msg = channel.createMessage("Hmmm... :thinking:\n").block();
+		if (msg == null) {
+			this.logger.error("Failed to send message!");
+			return;
 		}
 
-		// TODO: Use a non-deprecated way to edit the message.
-		//channelMessage.edit(spec).block();
+		OpenAiService service = new OpenAiService(this.config.getString("openai-key"));
+		ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
+				.messages(List.of(new ChatMessage("user", message.toString())))
+				.model(this.config.getString("openai-model"))
+				.build();
+		service.createChatCompletion(completionRequest).getChoices()
+				.forEach(e ->  {
+					final String content = msg.getContent() + e.getMessage().getContent();
+					msg.edit(spec -> spec.setContent(content)).block();
+				});
+	}
+
+	@Override
+	public String getName() {
+		return "chatgpt";
 	}
 
 	@Override
@@ -59,6 +63,11 @@ public class ChatGPTCommand implements Command {
 
 	@Override
 	public String getUsage() {
-		return "gpt <sprava>";
+		return "chatgpt <otazka>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("gpt");
 	}
 }

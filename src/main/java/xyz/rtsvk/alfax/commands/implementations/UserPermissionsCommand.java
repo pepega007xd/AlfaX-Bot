@@ -26,18 +26,18 @@ public class UserPermissionsCommand implements Command {
 			return;
 		}
 
-		if (args.size() < 3) {
+		if (args.size() < 2) {
 			channel.createMessage("Pouzitie: " + this.cfg.getString("prefix") + "usermod <id> <opravnenia>").block();
 			return;
 		}
 
-		String mention = args.get(1);
+		String mention = args.get(0);
 		if (!mention.startsWith("<@") || !mention.endsWith(">")) {
 			channel.createMessage("Nespravny format uzivatela. Pouzite mention, prosim.").block();
 			return;
 		}
 		String id = mention.substring(2, mention.length() - 1);
-		int permissions = Integer.parseInt(args.get(2));
+		int permissions = Integer.parseInt(args.get(1));
 		boolean success = Database.updateUserPermissions(id, permissions);
 		if (success) {
 			channel.createMessage("Uzivatel " + mention + " ma teraz opravnenia " + permissions).block();
@@ -47,12 +47,22 @@ public class UserPermissionsCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "usermodify";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Edit user permissions. Admin only.";
 	}
 
 	@Override
 	public String getUsage() {
-		return "usermod <id> <permissions>";
+		return "usermodify <id> <permissions>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("usermod");
 	}
 }

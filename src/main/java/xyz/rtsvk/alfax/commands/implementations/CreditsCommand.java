@@ -32,6 +32,11 @@ public class CreditsCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "credits";
+	}
+
+	@Override
 	public String getDescription() {
 		return null;
 	}
@@ -39,5 +44,10 @@ public class CreditsCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "credits";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of("creds");
 	}
 }

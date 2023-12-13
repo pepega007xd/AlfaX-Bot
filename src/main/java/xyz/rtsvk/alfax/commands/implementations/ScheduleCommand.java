@@ -20,6 +20,11 @@ public class ScheduleCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "schedule_obsolete";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Add a scheduled command.";
 	}
@@ -27,5 +32,10 @@ public class ScheduleCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "schedule <command> <time>";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }

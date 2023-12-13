@@ -15,6 +15,11 @@ public class TestCommand implements Command {
 	}
 
 	@Override
+	public String getName() {
+		return "test";
+	}
+
+	@Override
 	public String getDescription() {
 		return "Skusobny prikaz na overenie funkcnosti driveru.";
 	}
@@ -22,5 +27,10 @@ public class TestCommand implements Command {
 	@Override
 	public String getUsage() {
 		return "test";
+	}
+
+	@Override
+	public List<String> getAliases() {
+		return List.of();
 	}
 }
