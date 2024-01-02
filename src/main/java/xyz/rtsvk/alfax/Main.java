@@ -82,6 +82,7 @@ public class Main {
 		proc.registerCommand(new CreditsCommand());
 		proc.registerCommand(new SetAnnouncementChannelCommand());
 		proc.registerCommand(new ScheduleEventCommand());
+		proc.registerCommand(new MathExpressionCommand());
 
 		// scheduler
 		if (config.getBooleanOrDefault("scheduler-enabled", false)) {
@@ -135,7 +136,8 @@ public class Main {
 					Thread cmd = new Thread(() -> {
 						try {
 							Command c = proc.getCommandExecutor("gpt");
-							c.handle(user, channel, Arrays.asList(msg.split(" ")), guildId, gateway);
+							List<String> tokens = Arrays.asList(msg.split(" "));
+							c.handle(user, channel, tokens.subList(1, tokens.size()), guildId, gateway);
 						} catch (Exception e) {
 							e.printStackTrace(System.out);
 							channel.createMessage("**:x: Nastala neocakavana chyba. Prosim, skontrolujte standardny vystup pre viac informacii.**").block();
@@ -147,6 +149,13 @@ public class Main {
 				e.printStackTrace(System.out);
 			}
 		});
+
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			Database.close();
+			logger.info("Shutting down...");
+			gateway.logout().block();
+			logger.info("Goodbye!");
+		}));
 
 		gateway.onDisconnect().block();
 	}

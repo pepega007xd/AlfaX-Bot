@@ -40,7 +40,8 @@ public class Config extends LinkedHashMap<String, Object> {
 				StringBuilder content = new StringBuilder();
 				while (reader.hasNextLine())
 					content.append(reader.nextLine()).append("\n");
-				cfg.putAll(parse(content.toString().split("\n"), false));
+				Config fileCfg = parse(content.toString().split("\n"), false);
+				fileCfg.forEach(cfg::putIfAbsent);
 			}
 			catch (Exception e) {
 				Logger.error(TAG, "Error loading the config file: " + e.getMessage());

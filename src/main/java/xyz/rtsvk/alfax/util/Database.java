@@ -32,7 +32,7 @@ public class Database {
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			url = "jdbc:mysql://" + user + ":" + password + "@" + host;
-			logger.info("Connecting to database at " + url + "...");
+			logger.info("Connecting to database '" + db +"' at " + host + " as user '" + user + "'...");
 
 			conn = DriverManager.getConnection(url);
 			Statement st = conn.createStatement();
@@ -56,6 +56,20 @@ public class Database {
 		catch (Exception e){
 			logger.error("An error occured while trying to initialize the database wrapper class.");
 			throw new RuntimeException(e);
+		}
+	}
+
+	public static boolean close() {
+		if (!initialized) return false;
+
+		try {
+			logger.info("Closing database connection...");
+			conn.close();
+			return true;
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
 		}
 	}
 
@@ -86,7 +100,7 @@ public class Database {
 	public static List<Task> getScheduleFor(LocalDate date) {
 		List<Task> tasks = new ArrayList<>();
 		try (Statement st = conn.createStatement();
-			ResultSet result = st.executeQuery("SELECT * FROM `schedule` WHERE `exec_date`='" + date.format(DateTimeFormatter.ISO_LOCAL_DATE) + "';");
+			ResultSet result = st.executeQuery("SELECT * FROM `schedule` WHERE `exec_date`='" + date.format(DateTimeFormatter.ISO_LOCAL_DATE) + "';")
 		) {
 			if(!initialized) return tasks;
 
@@ -362,7 +376,7 @@ public class Database {
 
 		List<Event> events = new ArrayList<>();
 		try (Statement st = conn.createStatement();
-			ResultSet result = st.executeQuery("SELECT * FROM `events`;");
+			ResultSet result = st.executeQuery("SELECT * FROM `events`;")
 		) {
 			if (result.isBeforeFirst())
 				while (result.next())

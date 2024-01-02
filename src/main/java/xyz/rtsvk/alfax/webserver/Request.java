@@ -10,12 +10,12 @@ import java.util.Map;
 
 public class Request {
 
-	private String requestMethod;
-	private String path;
-	private String protocolVersion;
+	private final String requestMethod;
+	private final String path;
+	private final String protocolVersion;
 
-	private Map<String, Object> requestHeader;
-	private Map<String, Object> requestBody;
+	private final Map<String, Object> requestHeader;
+	private final Map<String, Object> requestBody;
 
 	public Request(Header header, Map<String, Object> body) {
 		this.requestMethod = header.getRequestMethod();
@@ -24,8 +24,6 @@ public class Request {
 		this.requestHeader = header.getHeaderData();
 		this.requestBody = body;
 	}
-
-	public Request() {}
 
 	public static Request parseRequest(BufferedInputStream in, Map<String, Content> supportedContentTypes) throws IOException {
 		StreamOutput streamOutput = readStreamUntil(in, "\n\n");
@@ -80,9 +78,9 @@ public class Request {
 		}
 	}
 
-	private static StreamOutput readStreamUntil(BufferedInputStream in, String until) throws IOException {
+	private static StreamOutput readStreamUntil(BufferedInputStream in, String delimiter) throws IOException {
 		StringBuilder sb = new StringBuilder();
-		int len = until.length();
+		int delimiterLength = delimiter.length();
 
 		String data = "";
 		do {
@@ -92,12 +90,12 @@ public class Request {
 			data = data.replace("\r", "");
 			sb.append(data);
 		}
-		while (!data.contains(until));
+		while (!data.contains(delimiter));
 
 		StreamOutput out = new StreamOutput();
 		String raw = sb.toString();
-		out.data = raw.substring(0, raw.indexOf(until));
-		out.remainder = data.substring(data.indexOf(until) + len);
+		out.data = raw.substring(0, raw.indexOf(delimiter));
+		out.remainder = data.substring(data.indexOf(delimiter) + delimiterLength);
 		return out;
 	}
 
@@ -105,24 +103,12 @@ public class Request {
 		return requestMethod;
 	}
 
-	private void setRequestMethod(String requestMethod) {
-		this.requestMethod = requestMethod;
-	}
-
 	public String getPath() {
 		return path;
 	}
 
-	private void setPath(String path) {
-		this.path = path;
-	}
-
 	public String getProtocolVersion() {
 		return protocolVersion;
-	}
-
-	private void setProtocolVersion(String protocolVersion) {
-		this.protocolVersion = protocolVersion;
 	}
 
 	public Object getHeaderProperty(String key) {
@@ -137,6 +123,9 @@ public class Request {
 		return this.requestHeader;
 	}
 
+	public boolean hasProperty(String key) {
+		return this.requestBody.containsKey(key);
+	}
 	public Object getProperty(String key) {
 		return this.requestBody.get(key);
 	}
@@ -145,14 +134,12 @@ public class Request {
 		return this.requestBody;
 	}
 
-	private void setRequestBody(Map<String, Object> requestBody) {
-		this.requestBody = requestBody;
-	}
-
 	public static class Header {
 
-		private Map<String, Object> headerData;
-		private String requestMethod, path, protocolVersion;
+		private final Map<String, Object> headerData;
+		private final String requestMethod;
+		private final String path;
+		private final String protocolVersion;
 
 		public Header(String requestMethod, String path, String protocolVersion) {
 			this.headerData = new HashMap<>();
@@ -190,7 +177,6 @@ public class Request {
 
 		private String data;
 		private String remainder;
-		private int length;
 
 		public String getData() {
 			return data;
@@ -198,10 +184,6 @@ public class Request {
 
 		public String getRemainder() {
 			return remainder;
-		}
-
-		public int getLength() {
-			return length;
 		}
 	}
 }

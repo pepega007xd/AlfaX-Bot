@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MqttPublishAction implements Action {
 
-	private Mqtt mqtt;
+	private final Mqtt mqtt;
 
 	public MqttPublishAction(Mqtt mqtt) {
 		this.mqtt = mqtt;
@@ -21,13 +21,9 @@ public class MqttPublishAction implements Action {
 	@Override
 	public ActionResult handle(GatewayDiscordClient client, Request request) {
 
-		String authKey = request.getProperty("auth_key").toString();
-		if (!Database.checkPermissionsByKey(authKey, Database.PERMISSION_MQTT))
-			return new ActionResult(Response.RESP_403_FORBIDDEN, "You don't have permissions to do that");
-
 		String topic = request.getProperty("topic").toString();
 		String msg = request.getProperty("message").toString();
-		if (msg.length() == 0)
+		if (msg.isEmpty())
 			return new ActionResult(Response.RESP_400_BAD_REQUEST, "Message is empty");
 
 		try {

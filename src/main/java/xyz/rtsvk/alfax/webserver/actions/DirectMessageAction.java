@@ -12,13 +12,10 @@ public class DirectMessageAction implements Action {
 	@Override
 	public ActionResult handle(GatewayDiscordClient client, Request request) {
 
-		String key = request.getProperty("auth_key").toString();
-		if (!Database.checkPermissionsByKey(key, Database.PERMISSION_API_DM))
-			return new ActionResult(Response.RESP_403_FORBIDDEN, "You don't have permission to do that");
-
 		String userID = request.getProperty("user_id").toString();
 		String msg = request.getProperty("message").toString();
-		if (msg.isEmpty()) msg = "Message not supplied";
+		if (msg.isEmpty())
+			return new ActionResult(Response.RESP_400_BAD_REQUEST, "Message is empty");
 
 		User user = client.getUserById(Snowflake.of(userID)).block();
 		if (user == null)
@@ -27,7 +24,12 @@ public class DirectMessageAction implements Action {
 		PrivateChannel channel = user.getPrivateChannel().block();
 		if (channel == null)
 			return new ActionResult(Response.RESP_404_NOT_FOUND, "Unable to open DM channel");
-		channel.createMessage(msg).block();
+
+		try {
+			channel.createMessage(msg).block();
+		} catch (Exception e) {
+			return new ActionResult(Response.RESP_500_ERROR, e.getMessage());
+		}
 
 		return new ActionResult(Response.RESP_200_OK, "Message sent");
 	}

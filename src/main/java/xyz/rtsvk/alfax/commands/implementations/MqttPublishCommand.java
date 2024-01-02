@@ -4,7 +4,6 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.mqtt.Mqtt;

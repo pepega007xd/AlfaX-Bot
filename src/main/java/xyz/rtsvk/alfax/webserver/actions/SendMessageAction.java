@@ -10,16 +10,14 @@ public class SendMessageAction implements Action {
 	@Override
 	public ActionResult handle(GatewayDiscordClient client, Request request) {
 
-		String key = request.getProperty("auth_key").toString();
-		if (!Database.checkPermissionsByKey(key, Database.PERMISSION_API_CHANNEL))
-			return new ActionResult(Response.RESP_403_FORBIDDEN, "You don't have permissions to do that");
-
 		String channelID = request.getProperty("channel_id").toString();
 		String msg = request.getProperty("message").toString();
-		if (msg.isEmpty())
-			return new ActionResult(Response.RESP_400_BAD_REQUEST, "Message is empty");
 
-		client.rest().getChannelById(Snowflake.of(channelID)).createMessage(msg).subscribe();
+		try {
+			client.rest().getChannelById(Snowflake.of(channelID)).createMessage(msg).subscribe();
+		} catch (Exception e) {
+			return new ActionResult(Response.RESP_500_ERROR, e.getMessage());
+		}
 
 		return new ActionResult(Response.RESP_200_OK, "Message sent");
 	}

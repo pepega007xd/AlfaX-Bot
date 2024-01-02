@@ -74,5 +74,4 @@ public class Logger {
 	public void error(String msg) {
 		error(this.tag, msg);
 	}
-
 }
