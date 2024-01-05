@@ -16,9 +16,11 @@ public class MathExpressionCommand implements Command {
 	private final List<Symbol> symbols = new ArrayList<>();
 
 	public MathExpressionCommand() {
-		this.symbols.add(new Symbol("pi", Math.PI, "double"));
-		this.symbols.add(new Symbol("e", Math.E, "double"));
-		this.symbols.add(new Symbol("phi", 1.61803398874989484820458683436563811772030917980576286213544862270526046281890, "double"));
+		this.symbols.add(new Symbol("pi", Math.PI));
+		this.symbols.add(new Symbol("e", Math.E));
+		this.symbols.add(new Symbol("phi", 1.61803398874989484820458683436563811772030917980576286213544862270526046281890));
+		this.symbols.add(new Symbol("ln2", Math.log(2)));
+		// TODO: add sqrt, sin, cos, tan, etc.
 	}
 
 	@Override
@@ -42,7 +44,7 @@ public class MathExpressionCommand implements Command {
 			}
 			try {
 				double val = Double.parseDouble(value);
-				symtable.add(new Symbol(name, val, "double"));
+				symtable.add(new Symbol(name, val));
 			} catch (NumberFormatException e) {
 				channel.createMessage("Invalid symbol value `" + value + "`").block();
 			}
@@ -76,34 +78,37 @@ public class MathExpressionCommand implements Command {
 
 		// evaluate the expression
 		for (Token token : postfix) {
-			if (token.type == TokenType.INTEGER_LITERAL) {
-				evalStack.push(Double.parseDouble(token.value));
+			if (token.getType() == TokenType.INTEGER_LITERAL || token.getType() == TokenType.DOUBLE_LITERAL) {
+				evalStack.push(Double.parseDouble(token.getValue()));
 			}
-			else if (token.type == TokenType.DOUBLE_LITERAL) {
-				evalStack.push(Double.parseDouble(token.value));
-			}
-			else if (token.type == TokenType.SYMBOL) {
-				Symbol symbol = symtable.stream().filter(s -> s.getName().equals(token.value)).findFirst().orElse(null);
+			else if (token.getType() == TokenType.SYMBOL) {
+				Symbol symbol = symtable.stream().filter(s -> s.getName().equals(token.getValue())).findFirst().orElse(null);
 				if (symbol == null) {
-					channel.createMessage("Unknown symbol '" + token.value + "'").block();
+					channel.createMessage("Unknown symbol `" + token.getValue() + "`").block();
 					return;
 				}
 				evalStack.push((Double) symbol.getValue());
 			}
-			else if (token.type == TokenType.OPERATOR) {
+			else if (token.getType() == TokenType.OPERATOR) {
 				double b = evalStack.pop();
 				double a = evalStack.pop();
-				switch (token.value) {
+				switch (token.getValue()) {
 					case "+":
 						evalStack.push(a + b);
 						break;
 					case "-":
 						evalStack.push(a - b);
 						break;
+					case "×":
 					case "*":
 						evalStack.push(a * b);
 						break;
+					case "÷":
 					case "/":
+						if (b == 0.0) {
+							channel.createMessage("Division by zero").block();
+							return;
+						}
 						evalStack.push(a / b);
 						break;
 					case "%":
@@ -113,7 +118,7 @@ public class MathExpressionCommand implements Command {
 						evalStack.push(Math.pow(a, b));
 						break;
 					default:
-						channel.createMessage("Unknown operator '" + token.value + "'").block();
+						channel.createMessage("Unknown operator `" + token.value + "`").block();
 						return;
 				}
 			}
@@ -174,7 +179,7 @@ public class MathExpressionCommand implements Command {
 	}
 
 	private boolean isOperator(char c) {
-		return List.of('+', '-', '*', '/', '%', '^').contains(c);
+		return List.of('+', '-', '×', '*', '÷', '/', '%', '^').contains(c);
 	}
 
 	private int getPriority(char c) {
@@ -185,6 +190,8 @@ public class MathExpressionCommand implements Command {
 			case '*':
 			case '/':
 			case '%':
+			case '×':
+			case '÷':
 				return 2;
 			case '^':
 				return 3;
@@ -213,7 +220,7 @@ public class MathExpressionCommand implements Command {
 		return List.of("calc", "math");
 	}
 
-	private class Token {
+	private static class Token {
 		private final String value;
 		private final TokenType type;
 
@@ -240,15 +247,19 @@ public class MathExpressionCommand implements Command {
 		CLOSE_BRACKET
 	}
 
-	private class Symbol {
+	private static class Symbol {
 		private final String name;
 		private final Object value;
-		private final String type;
+		private final boolean isFunction;
 
-		public Symbol(String name, Object value, String type) {
+		public Symbol(String name, Object value) {
+			this(name, value, false);
+		}
+
+		public Symbol(String name, Object value, boolean isFunction) {
 			this.name = name;
 			this.value = value;
-			this.type = type;
+			this.isFunction = isFunction;
 		}
 
 		public String getName() {
@@ -259,8 +270,8 @@ public class MathExpressionCommand implements Command {
 			return value;
 		}
 
-		public String getType() {
-			return type;
+		public boolean isFunction() {
+			return isFunction;
 		}
 	}
 }
