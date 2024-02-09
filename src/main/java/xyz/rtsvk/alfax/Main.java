@@ -1,5 +1,9 @@
 package xyz.rtsvk.alfax;
 
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
+import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
+import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
@@ -7,6 +11,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.voice.AudioProvider;
 import xyz.rtsvk.alfax.commands.*;
 import xyz.rtsvk.alfax.commands.implementations.*;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
@@ -16,8 +21,11 @@ import xyz.rtsvk.alfax.tasks.TaskTimer;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
+import xyz.rtsvk.alfax.util.lavaplayer.LavaPlayerAudioProvider;
+import xyz.rtsvk.alfax.util.lavaplayer.TrackScheduler;
 import xyz.rtsvk.alfax.webserver.WebServer;
 
+import javax.sound.midi.Track;
 import java.util.*;
 
 public class Main {
@@ -26,12 +34,12 @@ public class Main {
 		final Config config = Config.from(args);
 		final Logger logger = new Logger(Main.class);
 		Logger.setLogFile(config.getStringOrDefault("log-file", "latest.log"));
+		Config.defaultConfig().forEach(config::putIfAbsent);
 
 		// to generate the default config, run the bot as `java -jar jarfile.jar --default-config`
 		if (config.containsKey("default-config")) {
 			String filename = config.getStringOrDefault("default-config", "config.properties.def");
 			config.remove("default-config");
-			Config.defaultConfig().forEach(config::putIfAbsent);
 			config.write(filename);
 			logger.info("Created default configuration file '" + filename + "'!");
 			return;
@@ -56,11 +64,22 @@ public class Main {
 			return;
 		}
 
+		final Map<Snowflake, Queue<Track>> queues = new HashMap<>();
+		final AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
+		//playerManager.getConfiguration().setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
+		AudioSourceManagers.registerRemoteSources(playerManager);
+		final AudioPlayer player = playerManager.createPlayer();
+		AudioProvider provider = new LavaPlayerAudioProvider(player);
+		TrackScheduler trackScheduler = new TrackScheduler(player);
+		player.addListener(trackScheduler);
+
 		// set up discord gateway
 		final String prefix = config.getString("prefix");
 		logger.info("Bot's prefix is " + prefix + " (length=" + prefix.length() + ")");
 		final DiscordClient client = DiscordClient.create(config.getString("token"));
-		final GatewayDiscordClient gateway = client.login().block();
+		final GatewayDiscordClient gateway = client.login().blockOptional().orElseThrow(Exception::new);
+		final User self = gateway.getSelf().blockOptional().orElseThrow(Exception::new);
+		final String botMention = self.getMention();
 
 		CommandProcessor proc = new CommandProcessor();
 		proc.setFallback(new HelpCommand(proc));
@@ -84,6 +103,7 @@ public class Main {
 		proc.registerCommand(new ScheduleEventCommand());
 		proc.registerCommand(new MathExpressionCommand());
 		proc.registerCommand(new CatCommand());
+		//proc.registerCommand(new PlayCommand(playerManager, player, provider, trackScheduler));
 
 		// scheduler
 		if (config.getBooleanOrDefault("scheduler-enabled", false)) {
@@ -107,51 +127,45 @@ public class Main {
 		TaskTimer timer = new TaskTimer(gateway, 1000);
 		timer.setEnabled(true);
 
+		List<Thread> runningCommandExecutors = new ArrayList<>();
 		gateway.on(MessageCreateEvent.class).subscribe(event -> {
 			try {
 				final Message message = event.getMessage();
 				final User user = message.getAuthor().orElseThrow(Exception::new);
+				if (user.isBot()) return;
+
+				final String msg = message.getContent().trim();
+				final List<String> tokenList = new ArrayList<>(Arrays.asList(msg.split(" ")));
+				final String first = tokenList.get(0);
+				if (!first.equals(botMention) && !first.startsWith(prefix)) return;
+
 				final Snowflake guildId = message.getGuildId().orElse(null);
 				final MessageChannel channel = message.getChannel().block();
-				final String msg = message.getContent().trim();
-				final String mention = gateway.getSelf().block().getMention();
 
-				if (user.isBot()) return;
-				if (msg.startsWith(prefix)) {
-					Thread cmdThread = new Thread(() -> {
-						try {
-							String cStr = message.getContent().substring(prefix.length());
-							final List<String> commandArgs = new ArrayList<>(Arrays.asList(cStr.split(" ")));
-							Command cmd = proc.getCommandExecutor(commandArgs.remove(0));
+				Thread cmdThread = new Thread(() -> {
+					try {
+						String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : "chatgpt";
+						Command cmd = proc.getCommandExecutor(cmdName);
+						if (cmd == null)
+							channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
+						else cmd.handle(user, channel, tokenList.subList(1, tokenList.size()), guildId, gateway);
 
-							if (cmd == null)
-								channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
-							else cmd.handle(user, channel, commandArgs, guildId, gateway);
-						} catch (Exception e) {
-							e.printStackTrace(System.out);
-							channel.createMessage("**:x: " + e.getMessage() + "**").block();
-						}
-					});
-					cmdThread.start();
-				} else if (msg.startsWith(mention)) {
-					Thread cmd = new Thread(() -> {
-						try {
-							Command c = proc.getCommandExecutor("gpt");
-							List<String> tokens = Arrays.asList(msg.split(" "));
-							c.handle(user, channel, tokens.subList(1, tokens.size()), guildId, gateway);
-						} catch (Exception e) {
-							e.printStackTrace(System.out);
-							channel.createMessage("**:x: Nastala neocakavana chyba. Prosim, skontrolujte standardny vystup pre viac informacii.**").block();
-						}
-					});
-					cmd.start();
-				}
+					} catch (Exception e) {
+						e.printStackTrace(System.out);
+						channel.createMessage("**:x: " + e.getMessage() + "**").block();
+					}
+				});
+				cmdThread.start();
+				runningCommandExecutors.add(cmdThread);
+
+
 			} catch (Exception e) {
 				e.printStackTrace(System.out);
 			}
 		});
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			runningCommandExecutors.forEach(Thread::interrupt);
 			Database.close();
 			logger.info("Shutting down...");
 			gateway.logout().block();
@@ -164,7 +178,7 @@ public class Main {
 	// create a function to generate a random string of length n
 	public static String getRandomString(int n) {
 		// chose a Character random from this String
-		String AlphaNumericString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 									+ "0123456789"
 									+ "abcdefghijklmnopqrstuvxyz";
 
@@ -173,11 +187,11 @@ public class Main {
 
 		for (int i = 0; i < n; i++) {
 			// generate a random number between
-			// 0 to AlphaNumericString variable length
-			int index = (int)(AlphaNumericString.length() * Math.random());
+			// 0 to alphabet  variable length
+			int index = (int)(alphabet.length() * Math.random());
 
 			// add Character one by one in end of sb
-			sb.append(AlphaNumericString.charAt(index));
+			sb.append(alphabet.charAt(index));
 		}
 
 		return sb.toString();

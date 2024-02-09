@@ -2,6 +2,7 @@ package xyz.rtsvk.alfax.commands.implementations;
 
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
+import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -12,9 +13,7 @@ import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ChatGPTCommand implements Command {
 
@@ -28,11 +27,21 @@ public class ChatGPTCommand implements Command {
 
 	@Override
 	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+		if (this.config.getBoolean("openai-disabled")) {
+			channel.createMessage("Tento prikaz je zakazany administratorom!").block();
+			return;
+		}
 
 		StringBuilder message = new StringBuilder();
 		for (int i = 0; i < args.size(); i++) {
 			message.append(args.get(i));
 			if (i != args.size() - 1) message.append(" ");
+		}
+
+		String messageContent = message.toString();
+		if (messageContent.isEmpty()) {
+			channel.createMessage("Nic si sa nespytal bratm :skull:").block();
+			return;
 		}
 
 		Message msg = channel.createMessage("Hmmm... :thinking:\n").block();
@@ -41,16 +50,21 @@ public class ChatGPTCommand implements Command {
 			return;
 		}
 
-		StringBuilder sb = new StringBuilder();
-		OpenAiService service = new OpenAiService(this.config.getString("openai-key"));
+		StringBuilder output = new StringBuilder();
+		OpenAiService service = new OpenAiService(this.config.getString("openai-api-key"));
 		ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
-				.messages(List.of(new ChatMessage("user", message.toString())))
+				.messages(List.of(new ChatMessage(ChatMessageRole.USER.value(), messageContent)))
 				.model(this.config.getString("openai-model"))
 				.build();
 		service.createChatCompletion(completionRequest).getChoices()
-				.forEach(e -> sb.append(e.getMessage().getContent()));
+				.forEach(e -> {
+					String text = e.getMessage().getContent();
+					output.append(text);
+				});
 
-		msg.edit(spec -> spec.setContent(sb.toString())).block();
+		String response = output.toString()
+				.replace("@", "@ ");
+		msg.edit(spec -> spec.setContent(response)).block();
 	}
 
 	@Override

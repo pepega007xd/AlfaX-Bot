@@ -1,9 +1,6 @@
 package xyz.rtsvk.alfax.util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -81,38 +78,19 @@ public class Config extends LinkedHashMap<String, Object> {
 		return cfg;
 	}
 
-	public static Config defaultConfig() {
-		Config config = new Config();
+	public static Config defaultConfig() throws IOException {
+		StringBuilder raw = new StringBuilder();
+		try (InputStream stream = Config.class.getResourceAsStream("/default-config.properties")) {
+			if (stream == null) throw new FileNotFoundException("Default config file not found!");
 
-		// General configuration
-		config.put("token", "your_bot_token_here");
-		config.put("prefix", "!");
-		config.put("scheduler-enabled", "false");
+			byte[] buffer = new byte[64];
+			int read;
+			while ((read = stream.read(buffer)) != -1) {
+				raw.append(new String(buffer, 0, read));
+			}
+		}
 
-		// Weather API config
-		config.put("weather-api-key", "your_weather_api_key_here");
-		config.put("weather-lang", "en");
-
-		// MySQL config
-		config.put("db-host", "localhost:3306");
-		config.put("db-user", "root");
-		config.put("db-password", "password");
-		config.put("db-name", "discord");
-
-		// OpenAI API config
-		config.put("openai-api-key", "your_openai_api_key_here");
-		config.put("openai-model", "gpt-3.5-turbo");
-
-		// HTTP server config
-		config.put("webserver-port", "8080");
-
-		// MQTT client config
-		config.put("mqtt-enabled", "false");
-		config.put("mqtt-uri", "mqtt://127.0.0.1:1883/");
-		config.put("mqtt-user", "user");
-		config.put("mqtt-password", "password");
-
-		return config;
+		return parse(raw.toString().split("\n"), false);
 	}
 
 	public void write(String filename) throws IOException {
