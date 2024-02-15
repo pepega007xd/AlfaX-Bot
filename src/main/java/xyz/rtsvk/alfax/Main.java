@@ -21,6 +21,7 @@ import xyz.rtsvk.alfax.tasks.TaskTimer;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
+import xyz.rtsvk.alfax.util.TextUtils;
 import xyz.rtsvk.alfax.util.lavaplayer.LavaPlayerAudioProvider;
 import xyz.rtsvk.alfax.util.lavaplayer.TrackScheduler;
 import xyz.rtsvk.alfax.webserver.WebServer;
@@ -55,7 +56,7 @@ public class Main {
 
 		int adminCount = Database.getAdminCount();
 		if (adminCount == 0) {
-			String token = config.getStringOrDefault("admin-token", getRandomString(128));
+			String token = config.getStringOrDefault("admin-token", TextUtils.getRandomString(128));
 			logger.info("No admin users found! Admin token: " + token);
 			config.putIfAbsent("admin-token", token);
 		}
@@ -105,21 +106,22 @@ public class Main {
 		proc.registerCommand(new CatCommand());
 		//proc.registerCommand(new PlayCommand(playerManager, player, provider, trackScheduler));
 
+		Thread scheduler = new Thread(new CommandExecutionScheduler(gateway, proc));
+		Thread webserver = new WebServer(config, gateway);
+		Mqtt mqtt = new Mqtt(config, config.getString("mqtt-client-id"), gateway);
+
 		// scheduler
 		if (config.getBooleanOrDefault("scheduler-enabled", false)) {
-			Thread scheduler = new Thread(new CommandExecutionScheduler(gateway, proc));
 			scheduler.start();
 		}
 
 		// webhook server
-		if (config.containsKey("webserver-port")) {
-			Thread webserver = new WebServer(config, gateway);
+		if (config.getBoolean("webserver-enabled")) {
 			webserver.start();
 		}
 
 		// MQTT Subscribe Client
 		if (config.getBoolean("mqtt-enabled")) {
-			Mqtt mqtt = new Mqtt(config, "AlfaX-Bot-Sub", gateway);
 			mqtt.start();
 		}
 
@@ -146,9 +148,10 @@ public class Main {
 					try {
 						String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : "chatgpt";
 						Command cmd = proc.getCommandExecutor(cmdName);
+						Snowflake messageId = message.getId();
 						if (cmd == null)
 							channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
-						else cmd.handle(user, channel, tokenList.subList(1, tokenList.size()), guildId, gateway);
+						else cmd.handle(user, messageId, channel, tokenList.subList(1, tokenList.size()), guildId, gateway);
 
 					} catch (Exception e) {
 						e.printStackTrace(System.out);
@@ -165,35 +168,22 @@ public class Main {
 		});
 
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			if (scheduler.isAlive())
+				scheduler.interrupt();
+			if (webserver.isAlive())
+				webserver.interrupt();
+			if (mqtt.isAlive())
+				mqtt.interrupt();
+			timer.setEnabled(false);
 			runningCommandExecutors.forEach(Thread::interrupt);
 			Database.close();
-			logger.info("Shutting down...");
 			gateway.logout().block();
 			logger.info("Goodbye!");
 		}));
 
-		gateway.onDisconnect().block();
-	}
-
-	// create a function to generate a random string of length n
-	public static String getRandomString(int n) {
-		// chose a Character random from this String
-		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-									+ "0123456789"
-									+ "abcdefghijklmnopqrstuvxyz";
-
-		// create StringBuffer size of AlphaNumericString
-		StringBuilder sb = new StringBuilder(n);
-
-		for (int i = 0; i < n; i++) {
-			// generate a random number between
-			// 0 to alphabet  variable length
-			int index = (int)(alphabet.length() * Math.random());
-
-			// add Character one by one in end of sb
-			sb.append(alphabet.charAt(index));
-		}
-
-		return sb.toString();
+		gateway.onDisconnect().subscribe(event -> {
+			logger.error("Disconnected from Discord! Shutting down...");
+			Runtime.getRuntime().exit(1);
+		});
 	}
 }

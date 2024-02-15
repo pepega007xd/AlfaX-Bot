@@ -45,7 +45,7 @@ public class ChatGPTCommand implements Command {
 		StringBuilder output = new StringBuilder();
 		OpenAiService service = new OpenAiService(
 				this.config.getString("openai-api-key"),
-				Duration.ofMinutes(1));
+				Duration.ofSeconds(this.config.getInt("openai-timeout")));
 		ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
 				.messages(List.of(new ChatMessage(ChatMessageRole.USER.value(), messageContent)))
 				.model(this.config.getString("openai-model"))
@@ -57,8 +57,23 @@ public class ChatGPTCommand implements Command {
 		});
 
 		String response = output.toString()
-				.replace("@", "@ ");
-		channel.createMessage(response).withMessageReference(messageId).block();
+				.replace("@", "@\u200D");   // Prevent mentions
+		String[] chunks = splitToChunks(response, 2000);
+		for (String chunk : chunks) {
+			channel.createMessage(chunk).withMessageReference(messageId).block();
+		}
+	}
+
+	private String[] splitToChunks(String response, int chunkSize) {
+		int length = response.length();
+		int chunkCount = (length + chunkSize - 1) / chunkSize;
+		String[] chunks = new String[chunkCount];
+		for (int i = 0; i < chunkCount; i++) {
+			int start = i * chunkSize;
+			int end = Math.min(length, start + chunkSize);
+			chunks[i] = response.substring(start, end);
+		}
+		return chunks;
 	}
 
 	@Override
