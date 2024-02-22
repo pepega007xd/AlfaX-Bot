@@ -14,7 +14,6 @@ import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Config;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
