@@ -7,12 +7,15 @@ import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Config;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class ChatGPTCommand implements Command {
@@ -42,12 +45,23 @@ public class ChatGPTCommand implements Command {
 			return;
 		}
 
+		List<ChatMessage> history = new LinkedList<>();
+		history.add(new ChatMessage(ChatMessageRole.USER.value(), messageContent));
+		Message referencedMessage = getReferencedMessage(channel, messageId);
+		while (referencedMessage != null) {
+			String role = referencedMessage.getAuthor().get().getId().equals(bot.getSelfId())
+					? ChatMessageRole.ASSISTANT.value() : ChatMessageRole.USER.value();
+			history.add(new ChatMessage(role, referencedMessage.getContent()));
+			referencedMessage = getReferencedMessage(channel, referencedMessage.getId());
+		}
+		history.sort((a,b) -> -1);  // reverse the list
+
 		StringBuilder output = new StringBuilder();
 		OpenAiService service = new OpenAiService(
 				this.config.getString("openai-api-key"),
 				Duration.ofSeconds(this.config.getInt("openai-timeout")));
 		ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
-				.messages(List.of(new ChatMessage(ChatMessageRole.USER.value(), messageContent)))
+				.messages(history)
 				.model(this.config.getString("openai-model"))
 				.build();
 		List<ChatCompletionChoice> choices = service.createChatCompletion(completionRequest).getChoices();
@@ -94,5 +108,11 @@ public class ChatGPTCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of("gpt");
+	}
+
+	private Message getReferencedMessage(MessageChannel channel, Snowflake messageId) {
+		Message myMsg = channel.getMessageById(messageId).block();
+		if (myMsg == null) return null;
+		return myMsg.getReferencedMessage().orElse(null);
 	}
 }
