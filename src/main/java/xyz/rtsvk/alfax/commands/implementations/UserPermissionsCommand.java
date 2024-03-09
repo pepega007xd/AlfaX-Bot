@@ -3,10 +3,11 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
@@ -19,30 +20,30 @@ public class UserPermissionsCommand implements Command {
 	}
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 
 		if (!Database.checkPermissions(user.getId().asString(), Database.PERMISSION_ADMIN)) {
-			channel.createMessage("Nemas opravnenie na vykonanie tohto prikazu.").block();
+			chat.sendMessage("Nemas opravnenie na vykonanie tohto prikazu.");
 			return;
 		}
 
 		if (args.size() < 2) {
-			channel.createMessage("Pouzitie: " + this.cfg.getString("prefix") + "usermod <id> <opravnenia>").block();
+			chat.sendMessage("Pouzitie: " + this.cfg.getString("prefix") + "usermod <id> <opravnenia>");
 			return;
 		}
 
 		String mention = args.get(0);
 		if (!mention.startsWith("<@") || !mention.endsWith(">")) {
-			channel.createMessage("Nespravny format uzivatela. Pouzite mention, prosim.").block();
+			chat.sendMessage("Nespravny format uzivatela. Pouzite @mention, prosim.");
 			return;
 		}
 		String id = mention.substring(2, mention.length() - 1);
 		int permissions = Integer.parseInt(args.get(1));
 		boolean success = Database.updateUserPermissions(id, permissions);
 		if (success) {
-			channel.createMessage("Uzivatel " + mention + " ma teraz opravnenia " + permissions).block();
+			chat.sendMessage("Uzivatel " + mention + " ma teraz opravnenia " + permissions);
 		} else {
-			channel.createMessage("Nepodarilo sa upravit opravnenia uzivatela " + id).block();
+			chat.sendMessage("Nepodarilo sa upravit opravnenia uzivatela " + id);
 		}
 	}
 
@@ -64,5 +65,10 @@ public class UserPermissionsCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of("usermod");
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

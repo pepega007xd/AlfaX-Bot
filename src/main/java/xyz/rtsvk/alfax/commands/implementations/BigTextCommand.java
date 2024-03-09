@@ -3,8 +3,9 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +62,7 @@ public class BigTextCommand implements Command {
 	}
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		String message = String.join(" ", args);
 
 		// normalize characters
@@ -85,7 +86,7 @@ public class BigTextCommand implements Command {
 			}
 		}
 
-		channel.createMessage(outputBuilder.toString()).block();
+		chat.sendMessage(outputBuilder.toString());
 	}
 
 	@Override
@@ -95,16 +96,21 @@ public class BigTextCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Napise Tvoju spravu velkymi pismenami.";
+		return "command.bigtext.description";
 	}
 
 	@Override
 	public String getUsage() {
-		return "bigtext <sprava>";
+		return "bigtext <message>";
 	}
 
 	@Override
 	public List<String> getAliases() {
 		return List.of();
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

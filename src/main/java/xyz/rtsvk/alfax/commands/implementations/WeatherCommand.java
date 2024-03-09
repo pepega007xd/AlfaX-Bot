@@ -3,13 +3,14 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Config;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.io.BufferedInputStream;
 import java.net.HttpURLConnection;
@@ -30,14 +31,14 @@ public class WeatherCommand implements Command {
 	}
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
 		DecimalFormat f = new DecimalFormat("##.00");
 
 		try {
 			String cityName = String.join(" ", args);
 
 			// fetch the weather data
-			URL url = new URL("http://api.openweathermap.org/data/2.5/weather?appid=" + this.apiKey + "&q=" + cityName + "&units=metric&lang=" + this.lang);
+			URL url = new URL("https://api.openweathermap.org/data/2.5/weather?appid=" + this.apiKey + "&q=" + cityName + "&units=metric&lang=" + this.lang);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setDoInput(true);
 			BufferedInputStream input = new BufferedInputStream(conn.getInputStream());
@@ -76,10 +77,10 @@ public class WeatherCommand implements Command {
 					.timestamp(Instant.now())
 					.build();
 
-			channel.createMessage(table).block();
-
+			chat.sendMessage(table);
 		} catch (Exception e) {
-			channel.createMessage("**Chyba pri ziskavani udajov o pocasi: " + e.getMessage() + "**").block();
+			chat.sendMessage("**Chyba pri ziskavani udajov o pocasi.**");
+			e.printStackTrace(System.out);
 		}
 	}
 
@@ -105,5 +106,10 @@ public class WeatherCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of();
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

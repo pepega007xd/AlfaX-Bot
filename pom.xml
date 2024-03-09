@@ -40,6 +40,11 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.2</version>
+            </plugin>
         </plugins>
     </build>
 
@@ -54,7 +59,7 @@
         <dependency>
             <groupId>com.discord4j</groupId>
             <artifactId>discord4j-core</artifactId>
-            <version>3.2.3</version>
+            <version>3.2.6</version>
         </dependency>
         <dependency>
             <groupId>mysql</groupId>
@@ -85,6 +90,12 @@
             <groupId>com.github.walkyst</groupId>
             <artifactId>lavaplayer-fork</artifactId>
             <version>1.4.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.1</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

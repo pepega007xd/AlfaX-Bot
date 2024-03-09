@@ -3,36 +3,37 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Database;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
 public class SetAnnouncementChannelCommand implements Command {
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 
 		if (!Database.checkPermissions(user.getId().asString(), Database.PERMISSION_ADMIN)) {
-			channel.createMessage("You don't have permissions to do that").block();
+			chat.sendMessage("You don't have permissions to do that");
 			return;
 		}
 
 		// syntax: ac <channel id>
 		if (args.isEmpty()) {
-			channel.createMessage("Syntax: setannouncementchannel <channel id>").block();
+			chat.sendMessage("Syntax: setannouncementchannel <channel id>");
 			return;
 		}
 
 		String channelID = args.get(0);
 		if (channelID.isEmpty()) {
-			channel.createMessage("Channel ID is empty").block();
+			chat.sendMessage("Channel ID is empty");
 			return;
 		}
 
 		Database.setAnnouncementChannel(guildId, Snowflake.of(channelID));
-		channel.createMessage("Kanal pre oznamenia bol nastaveny na <#" + channelID + ">").block();
+		chat.sendMessage("Kanal pre oznamenia bol nastaveny na <#" + channelID + ">");
 	}
 
 	@Override
@@ -53,5 +54,10 @@ public class SetAnnouncementChannelCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of("ac");
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

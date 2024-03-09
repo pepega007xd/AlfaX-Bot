@@ -1,28 +1,28 @@
 package xyz.rtsvk.alfax.commands.implementations;
 
+import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
+
 import java.io.BufferedInputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.List;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
-import org.json.simple.parser.JSONParser;
-import xyz.rtsvk.alfax.commands.Command;
-import xyz.rtsvk.alfax.util.Config;
-import discord4j.common.util.Snowflake;
 
 
 public class CatCommand implements Command {
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
 		try {
 			URL url = new URL("https://api.thecatapi.com/v1/images/search");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -35,9 +35,7 @@ public class CatCommand implements Command {
 				int read = input.read(buffer);
 				response.append(new String(buffer, 0, read, StandardCharsets.UTF_8));
 			}
-
 			JSONArray json = (JSONArray) (new JSONParser().parse(response.toString()));
-
 			JSONObject image = (JSONObject) json.get(0);
 
 			input.close();
@@ -46,16 +44,14 @@ public class CatCommand implements Command {
 			EmbedCreateSpec table = EmbedCreateSpec.builder()
 				.author("thecatapi.com", "https://thecatapi.com/", "")
 				.title("Kočička (mačička)")
-    		.image(image.get("url").toString())
-
+	    		.image(image.get("url").toString())
 				.timestamp(Instant.now())
 				.build();
 
-			channel.createMessage(table).block();
-
+			chat.sendMessage(table);
 		} catch (Exception e) {
+			chat.sendMessage("Kočky došly :(");
 			e.printStackTrace();
-			channel.createMessage("Kočky došly :(").block();
 		}
 	}
 
@@ -77,5 +73,10 @@ public class CatCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of();
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

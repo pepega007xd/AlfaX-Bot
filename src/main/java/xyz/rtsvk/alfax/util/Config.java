@@ -86,11 +86,27 @@ public class Config extends LinkedHashMap<String, Object> {
 			byte[] buffer = new byte[64];
 			int read;
 			while ((read = stream.read(buffer)) != -1) {
-				raw.append(new String(buffer, 0, read));
+				raw.append(new String(buffer, 0, read).trim());
 			}
 		}
 
 		return parse(raw.toString().split("\n"), false);
+	}
+
+	public static void copyDefaultConfig(String filename) throws IOException {
+		InputStream resource = Config.class.getResourceAsStream("/default-config.properties");
+		if (resource == null) throw new FileNotFoundException("Default config file not found!");
+
+		FileOutputStream outFile = new FileOutputStream(filename);
+
+		byte[] buffer = new byte[64];
+		int read;
+		while ((read = resource.read(buffer)) != -1) {
+			outFile.write(buffer, 0, read);
+		}
+
+		outFile.close();
+		resource.close();
 	}
 
 	public void write(String filename) throws IOException {

@@ -3,17 +3,18 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
 public class ScheduleCommand implements Command {
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
 		if (!user.getTag().equals("Jastrobaron#0262")) {
-			channel.createMessage("**Dobry pokus zmrde. Toto ty nemozes :)**").block();
+			chat.sendMessage("**Dobry pokus zmrde. Toto ty nemozes :)**");
 		}
 
 
@@ -37,5 +38,10 @@ public class ScheduleCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of();
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

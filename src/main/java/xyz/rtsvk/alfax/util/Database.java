@@ -20,11 +20,13 @@ public class Database {
 	private static Logger logger;
 	private static Connection conn;
 
-	public static final byte PERMISSION_ADMIN = 0x01;
-	public static final byte PERMISSION_API_CHANNEL = 0x02;
-	public static final byte PERMISSION_API_DM = 0x04;
+	public static final byte PERMISSION_NONE = 0;
+	public static final byte PERMISSION_ADMIN = 1 << 0;
+	public static final byte PERMISSION_API_CHANNEL = 1 << 1;
+	public static final byte PERMISSION_API_DM = 1 << 2;
 	public static final byte PERMISSION_API = PERMISSION_API_CHANNEL | PERMISSION_API_DM;
-	public static final byte PERMISSION_MQTT = 0x08;
+	public static final byte PERMISSION_MQTT = 1 << 3;
+	public static final byte PERMISSION_RATE_LIMIT_BYPASS = 1 << 4;
 
 	public static void init(String host, String user, String password, String db) {
 		logger = new Logger(Database.class);
@@ -329,20 +331,6 @@ public class Database {
 		}
 	}
 
-	public static String hash(String input) throws NoSuchAlgorithmException {
-		String result = input;
-		if(input != null) {
-			MessageDigest md = MessageDigest.getInstance("SHA-512");
-			md.update(input.getBytes());
-			BigInteger hash = new BigInteger(1, md.digest());
-			result = hash.toString(16);
-			while(result.length() < 128) {
-				result = "0" + result;
-			}
-		}
-		return result;
-	}
-
 	public static boolean updateSensorData(SensorData data) {
 		return false;
 	}
@@ -418,6 +406,7 @@ public class Database {
 			return false;
 		}
 	}
+
 
 	public static class SensorData {
 

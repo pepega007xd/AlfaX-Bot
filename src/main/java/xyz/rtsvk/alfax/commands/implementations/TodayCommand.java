@@ -3,11 +3,12 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.io.*;
 import java.time.LocalDate;
@@ -29,7 +30,7 @@ public class TodayCommand implements Command {
 	}
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
 		String displayDate = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL));
 
 		int month = LocalDate.now().getMonthValue()-1;
@@ -41,7 +42,7 @@ public class TodayCommand implements Command {
 			name.append(n.replace(",", "")).append("\n");
 		name.append("```");
 
-		channel.createMessage("**Dnes je " + displayDate + ". Meniny majú:** " + name).block();
+		chat.sendMessage("**Dnes je " + displayDate + ". Meniny majú:** " + name);
 	}
 
 	@Override
@@ -62,5 +63,10 @@ public class TodayCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of();
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

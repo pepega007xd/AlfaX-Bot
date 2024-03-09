@@ -1,9 +1,5 @@
 package xyz.rtsvk.alfax;
 
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
-import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
-import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
@@ -11,48 +7,49 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
-import discord4j.voice.AudioProvider;
-import xyz.rtsvk.alfax.commands.*;
+import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.commands.implementations.*;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.scheduler.CommandExecutionScheduler;
-import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.tasks.TaskTimer;
-import xyz.rtsvk.alfax.util.Config;
-import xyz.rtsvk.alfax.util.Database;
-import xyz.rtsvk.alfax.util.Logger;
-import xyz.rtsvk.alfax.util.TextUtils;
-import xyz.rtsvk.alfax.util.lavaplayer.LavaPlayerAudioProvider;
-import xyz.rtsvk.alfax.util.lavaplayer.TrackScheduler;
+import xyz.rtsvk.alfax.util.*;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.chat.impl.DiscordChat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
+import xyz.rtsvk.alfax.util.text.TextUtils;
 import xyz.rtsvk.alfax.webserver.WebServer;
 
-import javax.sound.midi.Track;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
 	public static void main(String[] args) throws Exception {
 
 		final Config config = Config.from(args);
 		final Logger logger = new Logger(Main.class);
+		FileManager.init();
 		Logger.setLogFile(config.getStringOrDefault("log-file", "latest.log"));
-		Config.defaultConfig().forEach(config::putIfAbsent);
 
-		// to generate the default config, run the bot as `java -jar jarfile.jar --default-config`
-		if (config.containsKey("default-config")) {
-			String filename = config.getStringOrDefault("default-config", "config.properties.def");
-			config.remove("default-config");
-			config.write(filename);
-			logger.info("Created default configuration file '" + filename + "'!");
+		// if the bot is run with --copy-default-config, it will generate a default config file and exit
+		if (config.containsKey("copy-default-config")) {
+			String filename = config.getStringOrDefault("copy-default-config", "default-config.properties");
+			Config.copyDefaultConfig(filename);
+			logger.info("Default configuration saved to file '" + filename + "'!");
 			return;
 		}
 
+		Config.defaultConfig().forEach(config::putIfAbsent);    // fill in missing values with defaults
+		if (config.containsKey("save-config")) {
+			String filename = config.getStringOrDefault("save-config", "saved-config_" + System.currentTimeMillis() + ".properties");
+			config.remove("save-config");
+			config.write(filename);
+			logger.info("Current configuration saved to file '" + filename + "'!");
+		}
+
 		// initialize database wrapper
-		Database.init(
-				config.getString("db-host"),
-				config.getString("db-user"),
-				config.getString("db-password"),
-				config.getString("db-name")
-		);
+		Database.init(config);
 
 		int adminCount = Database.getAdminCount();
 		if (adminCount == 0) {
@@ -65,15 +62,6 @@ public class Main {
 			return;
 		}
 
-		final Map<Snowflake, Queue<Track>> queues = new HashMap<>();
-		final AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
-		//playerManager.getConfiguration().setFrameBufferFactory(NonAllocatingAudioFrameBuffer::new);
-		AudioSourceManagers.registerRemoteSources(playerManager);
-		final AudioPlayer player = playerManager.createPlayer();
-		AudioProvider provider = new LavaPlayerAudioProvider(player);
-		TrackScheduler trackScheduler = new TrackScheduler(player);
-		player.addListener(trackScheduler);
-
 		// set up discord gateway
 		final String prefix = config.getString("prefix");
 		logger.info("Bot's prefix is " + prefix + " (length=" + prefix.length() + ")");
@@ -81,14 +69,22 @@ public class Main {
 		final GatewayDiscordClient gateway = client.login().blockOptional().orElseThrow(Exception::new);
 		final User self = gateway.getSelf().blockOptional().orElseThrow(Exception::new);
 		final String botMention = self.getMention();
+		final String defaultLanguage = config.getString("default-language");
+		final boolean forceDefaultLanguage = config.getBoolean("force-default-language");
 
 		CommandProcessor proc = new CommandProcessor();
-		proc.setFallback(new HelpCommand(proc));
+		proc.setFallback(new HelpCommand(proc) {
+			@Override
+			public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
+				chat.sendMessage("Neznamy prikaz!");
+				super.handle(user, chat, args, guildId, bot, language);
+			}
+		});
 
 		// register all commands
 		proc.registerCommand(new HelpCommand(proc));
 		proc.registerCommand(new TestCommand());
-		proc.registerCommand(new FortuneTeller());
+		proc.registerCommand(new FortuneTellerCommand());
 		proc.registerCommand(new PickCommand());
 		proc.registerCommand(new TodayCommand());
 		proc.registerCommand(new WeatherCommand(config));
@@ -99,29 +95,43 @@ public class Main {
 		proc.registerCommand(new CreateUserCommand());
 		proc.registerCommand(new UserPermissionsCommand(config));
 		proc.registerCommand(new RedeemAdminPermissionCommand(config));
-		proc.registerCommand(new CreditsCommand());
+		proc.registerCommand(new CreditsCommand(config));
 		proc.registerCommand(new SetAnnouncementChannelCommand());
 		proc.registerCommand(new ScheduleEventCommand());
 		proc.registerCommand(new MathExpressionCommand());
 		proc.registerCommand(new CatCommand());
+		proc.registerCommand(new TextToSpeechCommand(config));
+		proc.registerCommand(new GenerateImageCommand(config));
+		proc.registerCommand(new RollDiceCommand());
+		proc.registerCommand(new CreditBuyCommand());
+		proc.registerCommand(new MeCommand());
+		proc.registerCommand(new PollCreateCommand());
+		proc.registerCommand(new PollEndCommand());
+		proc.registerCommand(new SetLanguageCommand());
+		proc.registerCommand(new ClearMessageManagerCacheCommand());
+		proc.registerCommand(new ServiceInfoCommand(() -> Thread.getAllStackTraces().keySet()));
 		//proc.registerCommand(new PlayCommand(playerManager, player, provider, trackScheduler));
 
-		Thread scheduler = new Thread(new CommandExecutionScheduler(gateway, proc));
+		ServiceWatcher watcher = new ServiceWatcher();
+		Thread scheduler = new CommandExecutionScheduler(gateway, proc);
 		Thread webserver = new WebServer(config, gateway);
-		Mqtt mqtt = new Mqtt(config, config.getString("mqtt-client-id"), gateway);
+		Mqtt mqtt = new Mqtt(config, gateway);
 
 		// scheduler
-		if (config.getBooleanOrDefault("scheduler-enabled", false)) {
+		if (config.getBoolean("scheduler-enabled")) {
+			scheduler.setUncaughtExceptionHandler(watcher);
 			scheduler.start();
 		}
 
 		// webhook server
 		if (config.getBoolean("webserver-enabled")) {
+			webserver.setUncaughtExceptionHandler(watcher);
 			webserver.start();
 		}
 
 		// MQTT Subscribe Client
 		if (config.getBoolean("mqtt-enabled")) {
+			mqtt.setUncaughtExceptionHandler(watcher);
 			mqtt.start();
 		}
 
@@ -129,6 +139,8 @@ public class Main {
 		TaskTimer timer = new TaskTimer(gateway, 1000);
 		timer.setEnabled(true);
 
+		final String commandOnTag = config.getString("command-on-tag");
+		logger.info("Command on tag: " + commandOnTag);
 		List<Thread> runningCommandExecutors = new ArrayList<>();
 		gateway.on(MessageCreateEvent.class).subscribe(event -> {
 			try {
@@ -136,29 +148,46 @@ public class Main {
 				final User user = message.getAuthor().orElseThrow(Exception::new);
 				if (user.isBot()) return;
 
-				final String msg = message.getContent().trim();
-				final List<String> tokenList = new ArrayList<>(Arrays.asList(msg.split(" ")));
-				final String first = tokenList.get(0);
-				if (!first.equals(botMention) && !first.startsWith(prefix)) return;
-
 				final Snowflake guildId = message.getGuildId().orElse(null);
 				final MessageChannel channel = message.getChannel().block();
+				assert channel != null;
 
+				final String msg = message.getContent().trim();
+				if (!msg.startsWith(botMention) && !msg.startsWith(prefix)) return;
+				final List<String> tokenList = CommandProcessor.splitCommandString(msg);
+				final String first = tokenList.get(0);
+
+				MessageManager language = forceDefaultLanguage
+						? MessageManager.getMessages(defaultLanguage)
+						: Database.getUserLanguage(user.getId(), defaultLanguage);
+
+				if (language == null) {
+					logger.error("Failed to load language for user " + user.getId().asString());
+					channel.createMessage("A fatal error has occured. Please contact the administrator.")
+							.withMessageReference(message.getId()).block();
+					return;
+				}
+
+				String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : commandOnTag;
 				Thread cmdThread = new Thread(() -> {
 					try {
-						String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : "chatgpt";
 						Command cmd = proc.getCommandExecutor(cmdName);
 						Snowflake messageId = message.getId();
-						if (cmd == null)
-							channel.createMessage("**:question: Bracho, netusim co odomna chces. Napis '" + prefix + "help' pre zoznam prikazov. :thinking:**").block();
-						else cmd.handle(user, messageId, channel, tokenList.subList(1, tokenList.size()), guildId, gateway);
+						if (cmd == null) {
+							channel.createMessage(language.formatMessage("command.not-found", prefix))
+									.withMessageReference(messageId).block();
+						}
+						else {
+							cmd.handle(user, new DiscordChat(channel, messageId), tokenList.subList(1, tokenList.size()), guildId, gateway, language);
+						}
 
 					} catch (Exception e) {
 						e.printStackTrace(System.out);
-						channel.createMessage("**:x: " + e.getMessage() + "**").block();
+						channel.createMessage("**:x: " + e.getMessage() + "**").withMessageReference(message.getId()).block();
 					}
 				});
 				cmdThread.start();
+				cmdThread.setName("CommandExecutor-" + cmdName + "-" + System.currentTimeMillis());
 				runningCommandExecutors.add(cmdThread);
 
 
@@ -167,21 +196,33 @@ public class Main {
 			}
 		});
 
+		AtomicBoolean shutdownRequested = new AtomicBoolean(false);
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			if (scheduler.isAlive())
+			shutdownRequested.set(true);
+			if (scheduler.isAlive()) {
 				scheduler.interrupt();
-			if (webserver.isAlive())
+			}
+			if (webserver.isAlive()) {
 				webserver.interrupt();
-			if (mqtt.isAlive())
+			}
+			if (mqtt.isAlive()) {
 				mqtt.interrupt();
+			}
 			timer.setEnabled(false);
-			runningCommandExecutors.forEach(Thread::interrupt);
+			if (config.getBoolean("force-shutdown-on-exit")) {
+				runningCommandExecutors.forEach(Thread::interrupt);
+			}
+			else { // wait for all command executors to finish
+				while (runningCommandExecutors.stream().anyMatch(Thread::isAlive));
+			}
 			Database.close();
+			FileManager.close();
 			gateway.logout().block();
 			logger.info("Goodbye!");
 		}));
 
 		gateway.onDisconnect().subscribe(event -> {
+			if (shutdownRequested.get()) return;
 			logger.error("Disconnected from Discord! Shutting down...");
 			Runtime.getRuntime().exit(1);
 		});

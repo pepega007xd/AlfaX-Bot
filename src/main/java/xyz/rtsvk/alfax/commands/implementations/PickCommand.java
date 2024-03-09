@@ -3,21 +3,23 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 import java.util.Random;
 
 public class PickCommand implements Command {
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
-		if (!args.isEmpty()) {
-			Random random = new Random();
-			int index = random.nextInt(args.size()-1);
-			channel.createMessage("**" + user.getMention() + ", " + args.get(index+1) + "**").block();
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
+		if (args.isEmpty()) {
+			chat.sendMessage("**Potrebujem minimalne 2 moznosti, aby som mohol rozhodnnut!**");
+			return;
 		}
-		else channel.createMessage("**Potrebujem minimalne 2 moznosti, aby som mohol rozhodnnut!**").block();
+		Random random = new Random();
+		int index = random.nextInt(args.size()-1);
+		chat.sendMessage("**" + user.getMention() + ", " + args.get(index+1) + "**");
 	}
 
 	@Override
@@ -38,5 +40,10 @@ public class PickCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of("choose");
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

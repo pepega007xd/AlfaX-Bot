@@ -3,13 +3,14 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -29,23 +30,21 @@ public class MqttPublishCommand implements Command {
 			return;
 		}
 
-		this.client = new Mqtt(cfg, "MQTT-Publish-Command", null);
+		this.client = new Mqtt(cfg, null);
+		this.client.setClientId("MQTT-Publish-Command");
 		this.client.setDoSubscribe(false);
 		this.client.start();
 	}
 
-	public Mqtt getClient() {
-		return client;
-	}
-
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) throws Exception {
+	@Override
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		if (!Database.checkPermissions(user.getId().asString(), Database.PERMISSION_MQTT)) {
-			channel.createMessage("Nemas opravnenie na pouzitie tohto prikazu.").block();
+			chat.sendMessage("Nemas opravnenie na pouzitie tohto prikazu.");
 			return;
 		}
 
 		if (args.size() < 2) {
-			channel.createMessage("Usage: " + this.prefix + "mqtt <topic> <message>").block();
+			chat.sendMessage("Usage: " + this.prefix + "mqtt <topic> <message>");
 			return;
 		}
 
@@ -54,6 +53,10 @@ public class MqttPublishCommand implements Command {
 		MqttMessage msg = new MqttMessage(message.getBytes(StandardCharsets.UTF_8));
 		this.client.publish(topic, msg);
 		this.logger.info("Published message to topic '" + topic + "': " + message);
+	}
+
+	public Mqtt getClient() {
+		return client;
 	}
 
 	@Override
@@ -74,5 +77,10 @@ public class MqttPublishCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of("mqtt-pub", "pub");
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }

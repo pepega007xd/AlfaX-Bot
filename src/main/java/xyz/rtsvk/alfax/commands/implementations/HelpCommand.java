@@ -3,9 +3,10 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
+import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
@@ -18,7 +19,7 @@ public class HelpCommand implements Command {
 	}
 
 	@Override
-	public void handle(User user, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
+	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
 		StringBuilder sb = new StringBuilder();
 
 		if (args.isEmpty()) {
@@ -30,19 +31,19 @@ public class HelpCommand implements Command {
 				sb.append(e.getName()).append(" - ").append(desc).append('\n');
 			});
 			sb.append("```");
-			channel.createMessage(sb.toString()).block();
+			chat.sendMessage(sb.toString());
 		}
 		else {
 			Command command = this.processor.getCommandExecutor(args.get(0));
 			if (command == null) {
-				channel.createMessage("Prikaz neexistuje").block();
+				chat.sendMessage("Prikaz neexistuje");
 				return;
 			}
 			sb.append("```\nPouzitie: ").append(command.getUsage()).append('\n');
 			sb.append("Popis: ").append(command.getDescription()).append('\n');
 			sb.append("Aliasy: ").append(String.join(", ", command.getAliases()));
 			sb.append("\n```");
-			channel.createMessage(sb.toString()).block();
+			chat.sendMessage(sb.toString());
 		}
 	}
 
@@ -64,5 +65,10 @@ public class HelpCommand implements Command {
 	@Override
 	public List<String> getAliases() {
 		return List.of("manual");
+	}
+
+	@Override
+	public int getCooldown() {
+		return 0;
 	}
 }
