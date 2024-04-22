@@ -14,21 +14,12 @@ public class FortuneTellerCommand implements Command {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
 		if (args.size() == 1) {
-			chat.sendMessage("**Nic si sa nespytal!**");
+			chat.sendMessage(language.getMessage("command.8ball.no-question"));
 		}
 
-		String[] answers = new String[] {
-				"Urcite! :100:",
-				"Nepochybujem o tom. :slight_smile:",
-				"Nech sa poserem ak to nie je pravda. :poop:",
-				"Netusim bracho. :thinking:",
-				"Nemyslim si. :no_entry_sign:",
-				"A to ti jak napadlo? :face_with_raised_eyebrow:",
-				"Jebe ti? To si z kerej pici vytiahol? :flushed:",
-				"Chod do pice :middle_finger:"
-		};
-
-		chat.sendMessage("**" + answers[new Random().nextInt(answers.length)] + "**");
+		List<String> answers = language.matchMessages("command.8ball.answer.*");
+		int index = Math.toIntExact(Math.round(Math.random() * answers.size()));
+		chat.sendMessage("**" + answers.get(index) + "**");
 	}
 
 	@Override
@@ -38,7 +29,7 @@ public class FortuneTellerCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Spytaj sa otazku typu ano/nie a dostanes odpoved!";
+		return "command.8ball.description";
 	}
 
 	@Override

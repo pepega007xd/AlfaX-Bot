@@ -15,11 +15,10 @@ public class CreditBuyCommand implements Command {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		long amount = !args.isEmpty() ? Long.parseLong(args.get(0)) : 100;
-		boolean success = Database.addUserCredits(user.getId(), amount);
-		if (success) {
-			chat.sendMessage("Tokeny boli pridane!");
+		if (Database.addUserCredits(user.getId(), amount)) {
+			chat.sendMessage(language.getFormattedString("command.credit-buy.success").addParam("amount", amount).build());
 		} else {
-			chat.sendMessage("Nepodarilo sa pridat tokeny!");
+			chat.sendMessage(language.getMessage("command.credit-buy.error"));
 		}
 	}
 
@@ -30,7 +29,7 @@ public class CreditBuyCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Nakup kreditov (zdarma for now)";
+		return "command.credit-buy.description";
 	}
 
 	@Override

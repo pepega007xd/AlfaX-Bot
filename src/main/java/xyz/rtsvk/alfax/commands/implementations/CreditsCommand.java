@@ -62,7 +62,7 @@ public class CreditsCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return null;
+		return "command.credits.description";
 	}
 
 	@Override

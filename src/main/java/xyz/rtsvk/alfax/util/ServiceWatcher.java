@@ -11,7 +11,8 @@ public class ServiceWatcher implements Thread.UncaughtExceptionHandler {
 	@Override
 	public void uncaughtException(Thread t, Throwable e) {
 		if (e.getCause() instanceof InterruptedException) return;
-		this.logger.error("Thread '" + t.getName() + "' crashed! " + e.getMessage());
+		this.logger.error("Thread '" + t.getName() + "' crashed!");
+		System.err.println(e.getMessage());
 		this.logger.info("Restarting...");
 		t.start();
 	}

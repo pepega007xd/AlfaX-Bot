@@ -1,13 +1,16 @@
 package xyz.rtsvk.alfax.webserver.contentparsing;
 
+import xyz.rtsvk.alfax.util.PropertiesParser;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public class FormContent implements Content {
+public class CsvContent implements Content {
+
+	private static final PropertiesParser parser = new PropertiesParser("&");
+
 	@Override
 	public Map<String, Object> parse(String s) {
-		Map<String, Object> map = new HashMap<>();
-
 		int index = 0;
 		while (index < s.length()) {
 			char currChar = s.charAt(index);
@@ -20,15 +23,6 @@ public class FormContent implements Content {
 				s = s.substring(0, index) + ' ' + s.substring(index + 1);
 			}
 		}
-
-		// key1=value1&key2=value2....
-		String[] arr = s.split("&");
-		for (String entry : arr) {
-			String key = entry.substring(0, entry.indexOf("="));
-			String value = entry.substring(entry.indexOf("=") + 1);
-
-			map.put(key, value);
-		}
-		return map;
+		return parser.parse(s);
 	}
 }

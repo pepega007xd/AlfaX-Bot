@@ -11,7 +11,6 @@ import java.util.List;
 public interface CommandHandler {
 	/**
 	 * Command executor method prototype
-	 *
 	 * @param user     user that queried the command execution
 	 * @param chat     ID of the message containing the command execution query
 	 * @param args     command arguments

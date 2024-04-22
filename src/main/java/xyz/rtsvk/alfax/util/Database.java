@@ -3,37 +3,50 @@ package xyz.rtsvk.alfax.util;
 import discord4j.common.util.Snowflake;
 import xyz.rtsvk.alfax.scheduler.Task;
 import xyz.rtsvk.alfax.tasks.Event;
+import xyz.rtsvk.alfax.util.text.FormattedString;
+import xyz.rtsvk.alfax.util.text.MessageManager;
 
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Database {
 	private static boolean initialized;
-	private static String url;
 	private static Logger logger;
 	private static Connection conn;
-
+	private static Config botConfig;
+	private static Map<Snowflake, MessageManager> languageCache = new HashMap<>();
 	public static final byte PERMISSION_NONE = 0;
-	public static final byte PERMISSION_ADMIN = 1 << 0;
+	public static final byte PERMISSION_ADMIN = 0x01;
 	public static final byte PERMISSION_API_CHANNEL = 1 << 1;
 	public static final byte PERMISSION_API_DM = 1 << 2;
-	public static final byte PERMISSION_API = PERMISSION_API_CHANNEL | PERMISSION_API_DM;
 	public static final byte PERMISSION_MQTT = 1 << 3;
 	public static final byte PERMISSION_RATE_LIMIT_BYPASS = 1 << 4;
+	public static final byte PERMISSION_API_GET_FILE = 1 << 5;
+	public static final byte PERMISSION_API = PERMISSION_API_CHANNEL | PERMISSION_API_DM | PERMISSION_API_GET_FILE;
+
+	public static void init(Config config) {
+		init(
+				config.getString("db-host"),
+				config.getString("db-user"),
+				config.getString("db-password"),
+				config.getString("db-name")
+		);
+		botConfig = config;
+	}
 
 	public static void init(String host, String user, String password, String db) {
 		logger = new Logger(Database.class);
 		initialized = false;
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
-			url = "jdbc:mysql://" + user + ":" + password + "@" + host;
+			String url = "jdbc:mysql://" + user + ":" + password + "@" + host;
 			logger.info("Connecting to database '" + db +"' at " + host + " as user '" + user + "'...");
 
 			conn = DriverManager.getConnection(url);
@@ -47,7 +60,10 @@ public class Database {
 			st.addBatch("CREATE TABLE IF NOT EXISTS `guilds` (`guild_id` varchar(128), `announcement_channel` varchar(128), PRIMARY KEY(`guild_id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `schedule` (`id` int AUTO_INCREMENT, `command` varchar(32), `description` text, `channel` varchar(128), `guild` varchar(128), `exec_date` date, `exec_time` varchar(8), `days` varchar(16), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `events`(`id` int AUTO_INCREMENT, `name` varchar(128), `description` text, `time` long, `guild` varchar(128), PRIMARY KEY(`id`));");
-			st.addBatch("CREATE TABLE IF NOT EXISTS `auth` (`id` varchar(128), `auth_key` varchar(128), `permissions` int, PRIMARY KEY(`id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `auth` (`id` varchar(128), `auth_key` varchar(128), `permissions` int, `credits` long, `language` varchar(4), PRIMARY KEY(`id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `polls` (`id` int AUTO_INCREMENT, `channel` varchar(128), `question` text, is_closed int, PRIMARY KEY(`id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `poll_options` (`id` int AUTO_INCREMENT, `poll_id` int, `option` varchar(128), PRIMARY KEY(`id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `poll_votes` (`id` int AUTO_INCREMENT, `poll_id` int, `user_id` varchar(128), `option_id` int, PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `sensors`(`id` int AUTO_INCREMENT, `key` varchar(128), `description` text, `type` varchar(32), `unit` varchar(16), `min` float, `max` float, `value` float, `last_updated` datetime, PRIMARY KEY(`id`));");
 			st.executeBatch();
 
@@ -101,11 +117,10 @@ public class Database {
 
 	public static List<Task> getScheduleFor(LocalDate date) {
 		List<Task> tasks = new ArrayList<>();
+		if(!initialized) return tasks;
 		try (Statement st = conn.createStatement();
 			ResultSet result = st.executeQuery("SELECT * FROM `schedule` WHERE `exec_date`='" + date.format(DateTimeFormatter.ISO_LOCAL_DATE) + "';")
 		) {
-			if(!initialized) return tasks;
-
 			if (result.isBeforeFirst())
 				while (result.next())
 					tasks.add(new Task(
@@ -134,11 +149,15 @@ public class Database {
 		if (!initialized) return false;
 
 		try {
-			String sql = "INSERT INTO `auth`(`id`, `auth_key`, `permissions`) VALUES (";
-			sql += "'" + id + "'," +
-					"'" + hash + "'," +
-					"'" + permissions + "'";
-			sql += ");";
+			String sql = FormattedString.create()
+					.setFormat("INSERT INTO `auth`(`id`, `auth_key`, `permissions`, `credits`, `language`) VALUES ('${id}', '${key}', '${perms}', '${creds}', '${lang}');")
+					.addParam("id", id)
+					.addParam("key", hash)
+					.addParam("perms", permissions)
+					.addParam("creds", 3000)
+					.addParam("lang", "legacy")
+					.build();
+
 			Statement st = conn.createStatement();
 			st.execute(sql);
 			st.close();
@@ -148,6 +167,300 @@ public class Database {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	public static MessageManager getUserLanguage(Snowflake id, String defaultLang) {
+		if (!initialized) return null;
+
+		if (languageCache.containsKey(id))
+			return languageCache.get(id);
+
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `language` FROM `auth` WHERE `id`='" + id.asString() + "';");
+			if (set.next()) {
+				String lang = set.getString("language");
+				set.close();
+				st.close();
+				MessageManager language = MessageManager.getMessages(lang);
+				languageCache.put(id, language);
+				return language;
+			}
+			else {
+				set.close();
+				st.close();
+				return MessageManager.getMessages(defaultLang);
+			}
+		}
+		catch (SQLException | IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+
+	}
+
+	public static boolean setUserLanguage(Snowflake id, String lang) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+			String sql = "UPDATE `auth` SET `language`='" + lang + "' WHERE `id`='" + id.asString() + "';";
+			st.execute(sql);
+			st.close();
+			languageCache.put(id, MessageManager.getMessages(lang));
+			return true;
+		}
+		catch (SQLException | IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean setUserCredits(Snowflake id, long credits) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();  // update permissions
+			String sql = "UPDATE `auth` SET `credits`='" + credits + "' WHERE `id`='" + id + "';";
+			st.execute(sql);
+			st.close();
+			return true;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean addUserCredits(Snowflake id, long credits) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+
+			// update permissions
+			String sql = "UPDATE `auth` SET `credits`=`credits`+'" + credits + "' WHERE `id`='" + id.asString() + "';";
+			st.execute(sql);
+			st.close();
+			return true;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean subtractUserCredits(Snowflake id, long credits) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+
+			// update permissions
+			String sql = "UPDATE `auth` SET `credits`=`credits`-'" + credits + "' WHERE `id`='" + id.asString() + "';";
+			st.execute(sql);
+			st.close();
+			return true;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static long getUserCredits(Snowflake id) {
+		if (!initialized) return -1;
+
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `credits` FROM `auth` WHERE `id`='" + id.asString() + "';");
+			if (set.next()) {
+				long credits = set.getLong("credits");
+				set.close();
+				st.close();
+				return credits;
+			}
+			else {
+				set.close();
+				st.close();
+				return -1;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return -1;
+		}
+	}
+
+	public static UserInfo getUserInfo(Snowflake id) {
+		if (!initialized) return null;
+
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `auth_key`, `permissions`, `credits`, `language` FROM `auth` WHERE `id`='" + id.asString() + "';");
+			if (set.next()) {
+				UserInfo info = new UserInfo(
+						id.asString(),
+						set.getString("auth_key"),
+						set.getInt("permissions"),
+						set.getLong("credits"),
+						set.getString("language")
+				);
+				set.close();
+				st.close();
+				return info;
+			}
+			else {
+				set.close();
+				st.close();
+				return null;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	public static boolean createPoll(Snowflake channelId, String question, List<String> options) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+			String sql = "INSERT INTO `polls`(`channel`, `question`, `is_closed`) VALUES ('" + channelId.asString() + "', '" + question + "', 0);";
+			st.execute(sql);
+			ResultSet set = st.executeQuery("SELECT `id` FROM `polls` WHERE `channel`='" + channelId.asString() + "' AND `question`='" + question + "' AND is_closed=0;");
+			if (set.next()) {
+				int pollId = set.getInt("id");
+				set.close();
+				for (String option : options) {
+					sql = "INSERT INTO `poll_options`(`poll_id`, `option`) VALUES ('" + pollId + "', '" + option + "');";
+					st.execute(sql);
+				}
+				st.close();
+				return true;
+			}
+			else {
+				set.close();
+				st.close();
+				return false;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean endPoll(Snowflake channelId) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+			String sql = "UPDATE `polls` SET `is_closed`=1 WHERE `channel`='" + channelId.asString() + "';";
+			st.execute(sql);
+			st.close();
+			return true;
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean votePoll(Snowflake channelId, String option) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `id` FROM `polls` WHERE `channel`='" + channelId.asString() + "' AND is_closed=0;");
+			if (set.next()) {
+				int pollId = set.getInt("id");
+				set.close();
+				set = st.executeQuery("SELECT `id` FROM `poll_options` WHERE `poll_id`='" + pollId + "' AND `option`='" + option + "';");
+				if (set.next()) {
+					int optionId = set.getInt("id");
+					set.close();
+					String sql = "INSERT INTO `poll_votes`(`poll_id`, `user_id`, `option_id`) VALUES ('" + pollId + "', '" + channelId.asString() + "', '" + optionId + "');";
+					st.execute(sql);
+					st.close();
+					return true;
+				}
+				else {
+					set.close();
+					st.close();
+					return false;
+				}
+			}
+			else {
+				set.close();
+				st.close();
+				return false;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static boolean addPollOption(Snowflake channelId, String option) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `id` FROM `polls` WHERE `channel`='" + channelId.asString() + "' AND is_closed=0;");
+			if (set.next()) {
+				int pollId = set.getInt("id");
+				set.close();
+				String sql = "INSERT INTO `poll_options`(`poll_id`, `option`) VALUES ('" + pollId + "', '" + option + "');";
+				st.execute(sql);
+				st.close();
+				return true;
+			}
+			else {
+				set.close();
+				st.close();
+				return false;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static Map<String, Integer> getLastPollResults(Snowflake channelId) {
+		if (!initialized) return new HashMap<>();
+
+		Map<String, Integer> results = new HashMap<>();
+		try {
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery("SELECT `id` FROM `polls` WHERE `channel`='" + channelId.asString() + "' AND is_closed=0;");
+			if (set.next()) {
+				int pollId = set.getInt("id");
+				set.close();
+				set = st.executeQuery("SELECT `option`, COUNT(`option_id`) AS `votes` FROM `poll_options` LEFT JOIN `poll_votes` ON `poll_options`.`id`=`poll_votes`.`option_id` WHERE `poll_id`='" + pollId + "' GROUP BY `option_id`;");
+				while (set.next()) {
+					results.put(set.getString("option"), set.getInt("votes"));
+				}
+				set.close();
+				st.close();
+				return results;
+			}
+			else {
+				set.close();
+				st.close();
+				return results;
+			}
+		}
+		catch (SQLException e) {
+			e.printStackTrace();
+			return results;
+		}
+	}
+
+	public static boolean checkPermissions(Snowflake id, byte permissions) {
+		return checkPermissions(id.asString(), permissions);
 	}
 
 	public static boolean checkPermissions(String id, byte permissions) {
@@ -407,6 +720,41 @@ public class Database {
 		}
 	}
 
+	public static class UserInfo {
+		private final String id;
+		private final String authKey;
+		private final int permissions;
+		private final long credits;
+		private final String language;
+
+		public UserInfo(String id, String authKey, int permissions, long credits, String language) {
+			this.id = id;
+			this.authKey = authKey;
+			this.permissions = permissions;
+			this.credits = credits;
+			this.language = language;
+		}
+
+		public String getId() {
+			return id;
+		}
+
+		public String getAuthKey() {
+			return authKey;
+		}
+
+		public int getPermissions() {
+			return permissions;
+		}
+
+		public long getCredits() {
+			return credits;
+		}
+
+		public String getLanguage() {
+			return language;
+		}
+	}
 
 	public static class SensorData {
 

@@ -7,6 +7,7 @@ import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
 import xyz.rtsvk.alfax.util.chat.Chat;
+import xyz.rtsvk.alfax.util.text.FormattedString;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
@@ -18,12 +19,15 @@ public class ClearMessageManagerCacheCommand implements Command {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		if (!Database.checkPermissions(user.getId(), Database.PERMISSION_ADMIN)) {
-			chat.sendMessage("You don't have permission to use this command!");
+			chat.sendMessage(language.getMessage("command.user.insufficient-permissions"));
 			return;
 		}
 		MessageManager.clearCache();
 		chat.sendMessage("Cache cleared!");
-		this.logger.info("Cleared message manager cache...");
+		this.logger.info(FormattedString.create("Message manager cache cleared by ${name} (id=${id})!")
+				.addParam("name", user.getUsername())
+				.addParam("id", user.getId().asString())
+				.build());
 	}
 
 	@Override

@@ -28,17 +28,18 @@ public class ChatGPTCommand implements Command {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		if (this.config.getBoolean("openai-disabled")) {
-			chat.sendMessage("Tento prikaz je zakazany administratorom!");
+			chat.sendMessage(language.getMessage("command.chatgpt.disabled"));
 			return;
 		}
 
 		long credits = Database.getUserCredits(user.getId());
 		if (credits == -1 ) {
-			chat.sendMessage("Bratu, neviem kto si :thinking: Napis `" + config.getString("prefix") + "register` pre vytvorenie uctu");
+			chat.sendMessage(language.getFormattedString("command.user.not-found")
+					.addParam("prefix", this.config.getString("prefix")).build());
 			return;
 		}
 		else if (credits < 1) {
-			chat.sendMessage("Nemas dostatok tokenov!");
+			chat.sendMessage(language.getMessage("command.user.no-credits"));
 			return;
 		}
 
@@ -50,7 +51,7 @@ public class ChatGPTCommand implements Command {
 
 		String messageContent = message.toString();
 		if (messageContent.isEmpty()) {
-			chat.sendMessage("Nic si sa nespytal bratm :skull:");
+			chat.sendMessage(language.getMessage("command.chatgpt.no-prompt"));
 			return;
 		}
 
@@ -112,12 +113,12 @@ public class ChatGPTCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Spytaj sa ChatGPT!";
+		return "command.chatgpt.description";
 	}
 
 	@Override
 	public String getUsage() {
-		return "chatgpt <otazka>";
+		return "chatgpt <question>";
 	}
 
 	@Override

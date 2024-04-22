@@ -3,7 +3,7 @@ import xyz.rtsvk.alfax.util.text.TextUtils;
 
 import java.security.NoSuchAlgorithmException;
 
-public class TextUtilsTests {
+public class TextUtilsTest {
 
 	@Test
 	void hashTest() throws NoSuchAlgorithmException {

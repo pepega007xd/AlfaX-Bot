@@ -7,10 +7,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class Request {
 
-	private final String requestMethod;
+	private final Method requestMethod;
 	private final String path;
 	private final String protocolVersion;
 
@@ -42,7 +43,7 @@ public class Request {
 		}
 
 		Content c = supportedContentTypes.get(contentType);
-		if (c != null && length > 0 && sb.length() > 0)
+		if (c != null && length > 0 && !sb.isEmpty())
 			return new Request(header, c.parse(sb.toString()));
 
 		return new Request(header, null);
@@ -99,7 +100,7 @@ public class Request {
 		return out;
 	}
 
-	public String getRequestMethod() {
+	public Request.Method getRequestMethod() {
 		return requestMethod;
 	}
 
@@ -126,8 +127,24 @@ public class Request {
 	public boolean hasProperty(String key) {
 		return this.requestBody.containsKey(key);
 	}
+
 	public Object getProperty(String key) {
 		return this.requestBody.get(key);
+	}
+
+	public Optional<Object> getOptionalProperty(String key) {
+		return Optional.ofNullable(getProperty(key));
+	}
+
+	public Object getPropertyOrDefault(String key, Object def) {
+		return this.requestBody.getOrDefault(key, def);
+	}
+
+	public String getPropertyAsString(String key) {
+		if (!this.requestBody.containsKey(key)) {
+			return null;
+		}
+		return String.valueOf(this.requestBody.get(key));
 	}
 
 	public Map<String, Object> getProperties() {
@@ -137,13 +154,13 @@ public class Request {
 	public static class Header {
 
 		private final Map<String, Object> headerData;
-		private final String requestMethod;
+		private final Method requestMethod;
 		private final String path;
 		private final String protocolVersion;
 
 		public Header(String requestMethod, String path, String protocolVersion) {
 			this.headerData = new HashMap<>();
-			this.requestMethod = requestMethod;
+			this.requestMethod = Method.valueOf(requestMethod);
 			this.path = path;
 			this.protocolVersion = protocolVersion;
 		}
@@ -160,7 +177,7 @@ public class Request {
 			return this.headerData.getOrDefault(key, def);
 		}
 
-		public String getRequestMethod() {
+		public Request.Method getRequestMethod() {
 			return requestMethod;
 		}
 
@@ -185,5 +202,13 @@ public class Request {
 		public String getRemainder() {
 			return remainder;
 		}
+	}
+
+	public enum Method {
+		POST,
+		GET,
+		PUT,
+		HEAD,
+		DELETE
 	}
 }

@@ -15,7 +15,11 @@ public class CommandProcessor {
 	public static final List<Character> QUOTES = List.of('"', '\'');
 	private final List<Command> commands = new ArrayList<>();
 	private Command fallback = null;
+	private String prefix;
 
+	public CommandProcessor(String prefix) {
+		this.prefix = prefix;
+	}
 	public Command getCommandExecutor(String command) {
 		return this.getCommandExecutor(command, this.fallback);
 	}
@@ -33,7 +37,7 @@ public class CommandProcessor {
 			cmd = this.fallback;
 		}
 		try {
-			cmd.handle(user, new DiscordChat(channel, messageId), args, guildId, bot, language);
+			cmd.handle(user, new DiscordChat(channel, messageId, this.prefix), args, guildId, bot, language);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

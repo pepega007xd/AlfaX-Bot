@@ -7,7 +7,7 @@ import xyz.rtsvk.alfax.webserver.Request;
 
 import java.util.List;
 
-public class DefaultAction implements Action {
+public class EndpointNotFoundAction implements Action {
 	@Override
 	public ActionResult handle(GatewayDiscordClient client, Request request) {
 		return ActionResult.notFound(TextUtils.format("Path '${0}' was not found!", request.getPath()));
@@ -25,7 +25,7 @@ public class DefaultAction implements Action {
 
 	@Override
 	public String getEndpointName() {
-		return "not_found";
+		return null;
 	}
 
 	@Override

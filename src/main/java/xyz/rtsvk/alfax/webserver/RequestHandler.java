@@ -1,16 +1,19 @@
 package xyz.rtsvk.alfax.webserver;
 
 import discord4j.core.GatewayDiscordClient;
-import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
+import xyz.rtsvk.alfax.util.text.FormattedString;
+import xyz.rtsvk.alfax.util.text.TextUtils;
 import xyz.rtsvk.alfax.webserver.actions.*;
 import xyz.rtsvk.alfax.webserver.contentparsing.Content;
-import xyz.rtsvk.alfax.webserver.contentparsing.FormContent;
+import xyz.rtsvk.alfax.webserver.contentparsing.CsvContent;
 import xyz.rtsvk.alfax.webserver.contentparsing.JsonContent;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,109 +22,92 @@ import java.util.Map;
 
 public class RequestHandler implements Runnable {
 
-	private final Socket skt;
-
+	private final Socket httpClient;
 	private final BufferedInputStream in;
 	private final PrintWriter out;
 	private final GatewayDiscordClient client;
 	private final Logger logger;
 
 	private final Map<String, Content> supportedContentTypes;
-	private final List<ActionData> actions;
+	private final List<Action> actions;
 	private final Config cfg;
+	private final int timeout;
 
-	public RequestHandler(Config cfg, Mqtt mqtt, Socket s, GatewayDiscordClient client) throws IOException {
-		this.cfg = cfg;
-		this.skt = s;
-		this.client = client;
+	public RequestHandler(WebServer server, Socket httpClient, int timeout) throws IOException {
 		this.logger = new Logger(this.getClass());
+		this.cfg = server.getConfig();
+		this.client = server.getDiscordClient();
+		this.supportedContentTypes = server.getSupportedContentTypes();
+		this.actions = server.getActions();
+		this.timeout = timeout;
 
-		this.in = new BufferedInputStream(s.getInputStream());
-		this.out = new PrintWriter(s.getOutputStream());
-
-		this.supportedContentTypes = new HashMap<>();
-		this.supportedContentTypes.put("application/json", new JsonContent());
-		this.supportedContentTypes.put("application/x-www-form-urlencoded", new FormContent());
-
-		this.actions = new ArrayList<>();
-		this.actions.add(new ActionData(
-				"channel_message",
-							new SendMessageAction(),
-							Database.PERMISSION_API_CHANNEL,
-							List.of("message", "channel_id")));
-		this.actions.add(new ActionData(
-				"direct_message",
-							new DirectMessageAction(),
-							Database.PERMISSION_API_DM,
-							List.of("message", "user_id")));
-		if (cfg.getBooleanOrDefault("mqtt-enabled", false))
-			this.actions.add(new ActionData(
-					"mqtt_publish",
-					new MqttPublishAction(mqtt),
-					Database.PERMISSION_MQTT,
-					List.of("topic", "message")));
+		this.httpClient = httpClient;
+		this.in = new BufferedInputStream(httpClient.getInputStream());
+		this.out = new PrintWriter(httpClient.getOutputStream());
 	}
 
 	@Override
 	public void run() {
 		try {
-			this.logger.info("Incoming request from " + this.skt.getRemoteSocketAddress());
-			this.skt.setSoTimeout(10000);
-
+			this.httpClient.setSoTimeout(this.timeout);
 			Request request = Request.parseRequest(this.in, this.supportedContentTypes);
-			String message = "Server responeded with an error";
 
-			if (request == null)
-				this.out.println(Response.RESP_500_ERROR);
-
-			else if (!request.getRequestMethod().equals("POST"))
-				this.out.println(request.getProtocolVersion() + " " + Response.RESP_501_NOT_IMPLEMENTED);
-
-			else {
-
-
-				String key = request.getProperty("auth_key").toString();
-				this.out.print(request.getProtocolVersion() + " ");
-				ActionData actionData = this.actions.stream()
-						.filter(a -> a.getEndpointName().equals(request.getPath().substring(1)))
-						.findFirst().orElse(null);
-
-				if (actionData == null)
-					this.out.println(Response.RESP_404_NOT_FOUND);
-				else {
-					if (!request.hasProperty("auth_key")) {
-						this.out.println(Response.RESP_401_UNAUTHORIZED);
-						message = "Missing auth_key parameter";
-					}
-					else if (!Database.checkPermissionsByKey(key, actionData.getRequiredPermissions())) {
-						this.out.println(Response.RESP_403_FORBIDDEN);
-						message = "You don't have permissions to do that";
-					}
-					else if (actionData.getRequiredArgs().stream().anyMatch(a -> !request.hasProperty(a))) {
-						this.out.println(Response.RESP_400_BAD_REQUEST);
-						message = "Missing parameters";
-					}
-					else {
-						Action action = actionData.getAction();
-						ActionResult result = action.handle(this.client, request);
-						this.out.println(result.getStatus());
-						message = result.getMessage();
-					}
-				}
+			if (request == null) {
+				this.out.println("HTTP/1.1 " + Response.BAD_REQUEST);
+				this.out.close();
+				this.in.close();
+				this.httpClient.close();
+				return;
 			}
 
-			/*StringBuilder message = new StringBuilder("Lorem ipsum dolor sit amet.\n");
-			if (request != null) request.getProperties().forEach((k,v) -> message.append(k + " = " + v + "\n"));*/
+			this.logger.info(FormattedString.create("Incoming request from ${host}: ${method} ${path} ${version}")
+					.addParam("host", this.httpClient.getRemoteSocketAddress())
+					.addParam("method", request.getRequestMethod())
+					.addParam("path", request.getPath())
+					.addParam("version", request.getProtocolVersion())
+					.build());
 
-			this.out.println("Content-type: text/plain");
-			this.out.println("Content-length: " + message.length());
+			ActionResult result;
+			String key = request.getPropertyAsString("auth_key");
+			String path = request.getPath();
+			Action action = this.actions.stream()
+					.filter(a -> TextUtils.match(path, a.getEndpointName()))
+					.findFirst().orElse(new EndpointNotFoundAction());
+
+			if (key == null) {
+				result = ActionResult.unauthorized("Missing auth_key parameter!");
+			}
+			else if (!action.getAllowedRequestMethods().contains(request.getRequestMethod())) {
+				String message = TextUtils.format("Request method '${0}' is not allowed for endpoint ${1}!", request.getRequestMethod(), request.getPath());
+				result = ActionResult.notImplemented(message);
+			}
+			else if (!Database.checkPermissionsByKey(key, action.getRequiredPermissions())) {
+				result = ActionResult.forbidden();
+			}
+			else if (action.getRequiredArgs().stream().anyMatch(a -> !request.hasProperty(a))) {
+				List<String> missingArgs = action.getRequiredArgs().stream().filter(e -> !request.hasProperty(e)).toList();
+				result = ActionResult.badRequest("Missing parameters " + String.join(", ", missingArgs));
+			}
+			else {
+				result = action.handle(this.client, request);
+			}
+
+			this.logger.info(FormattedString.create("Response to ${host}: ${status}: ${message}")
+					.addParam("host", this.httpClient.getRemoteSocketAddress())
+					.addParam("status", result.status())
+					.addParam("message", result.message())
+					.build());
+
+			this.out.println(request.getProtocolVersion() + " " + result.status());
+			this.out.println("Content-type: text/html");
+			this.out.println("Content-length: " + result.message().length());
 			this.out.println();
-			this.out.println(message);
+			this.out.println(result.message());
 			this.out.println();
 
 			this.out.close();
 			this.in.close();
-			this.skt.close();
+			this.httpClient.close();
 		}
 		catch (Exception e) {
 			e.printStackTrace();

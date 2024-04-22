@@ -12,7 +12,6 @@ import xyz.rtsvk.alfax.mqtt.actions.SensorDataReceivedAction;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Logger;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,20 +22,25 @@ public class Mqtt extends Thread {
 	private Logger logger;
 
 	private final String uri;
-	private final String clientid;
+	private String clientid;
 	private String uname;
 	private String pwd;
 	private boolean doSubscribe = true;
 	private boolean running = true;
 
-	public Mqtt(Config cfg, String clientid, GatewayDiscordClient gateway) {
+	public Mqtt(Config cfg, GatewayDiscordClient gateway) {
 
 		this.uri = cfg.getStringOrDefault("mqtt-uri", null);
+		this.clientid = cfg.getStringOrDefault("mqtt-client-id", null);
 		this.uname = cfg.getStringOrDefault("mqtt-user", null);
 		this.pwd = cfg.getStringOrDefault("mqtt-password", null);
 		this.logger = new Logger(this.getClass().getSimpleName() + " (" + clientid + ")");
 
 		this.gateway = gateway;
+		this.setName(this.logger.getTag());
+	}
+
+	public void setClientId(String clientid) {
 		this.clientid = clientid;
 	}
 

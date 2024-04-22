@@ -2,7 +2,7 @@ import org.junit.jupiter.api.Test;
 import xyz.rtsvk.alfax.util.text.FormattedString;
 import java.util.Map;
 
-public class FormattedStringTests {
+public class FormattedStringTest {
 
 	@Test
 	void createAndBuildTest() {

@@ -10,7 +10,6 @@ public class Config extends LinkedHashMap<String, Object> {
 	private static final String ARG_PREFIX = "--";
 	private static final String ARG_ASSIGN = "=";
 	private static final String COMMENT = "#";
-
 	private static final String TAG = "Config";
 
 	public Config() {
@@ -94,7 +93,7 @@ public class Config extends LinkedHashMap<String, Object> {
 	}
 
 	public static void copyDefaultConfig(String filename) throws IOException {
-		InputStream resource = Config.class.getResourceAsStream("/default-config.properties");
+		InputStream resource = Config.class.getResourceAsStream("default-config.properties");
 		if (resource == null) throw new FileNotFoundException("Default config file not found!");
 
 		FileOutputStream outFile = new FileOutputStream(filename);
@@ -121,7 +120,7 @@ public class Config extends LinkedHashMap<String, Object> {
 	}
 
 	public String getStringOrDefault(String key, String def) {
-		return String.valueOf(this.getOrDefault(key, def));
+		return String.valueOf(this.getOrDefault(key, def)).trim();
 	}
 
 	public String getString(String key) {

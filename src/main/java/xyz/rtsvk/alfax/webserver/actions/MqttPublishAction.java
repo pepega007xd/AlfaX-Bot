@@ -9,6 +9,7 @@ import xyz.rtsvk.alfax.webserver.Request;
 import xyz.rtsvk.alfax.webserver.Response;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class MqttPublishAction implements Action {
 
@@ -24,16 +25,36 @@ public class MqttPublishAction implements Action {
 		String topic = request.getProperty("topic").toString();
 		String msg = request.getProperty("message").toString();
 		if (msg.isEmpty())
-			return new ActionResult(Response.RESP_400_BAD_REQUEST, "Message is empty");
+			return ActionResult.badRequest("Message is empty");
 
 		try {
 			mqtt.publish(topic, new MqttMessage(msg.getBytes(StandardCharsets.UTF_8)));
 		}
 		catch (MqttException e) {
 			e.printStackTrace();
-			return new ActionResult(Response.RESP_500_ERROR, "MQTT error: " + e.getMessage());
+			return ActionResult.internalError("MQTT error: " + e.getMessage());
 		}
 
-		return new ActionResult(Response.RESP_200_OK, "Message published");
+		return ActionResult.ok("Message published");
+	}
+
+	@Override
+	public byte getRequiredPermissions() {
+		return Database.PERMISSION_MQTT;
+	}
+
+	@Override
+	public List<String> getRequiredArgs() {
+		return List.of("topic", "message");
+	}
+
+	@Override
+	public String getEndpointName() {
+		return "/mqtt_publish";
+	}
+
+	@Override
+	public List<Request.Method> getAllowedRequestMethods() {
+		return List.of(Request.Method.POST);
 	}
 }

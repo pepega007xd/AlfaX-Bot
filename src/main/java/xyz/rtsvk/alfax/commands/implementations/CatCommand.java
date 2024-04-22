@@ -62,12 +62,12 @@ public class CatCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Zobrazí krásnou kočičku (mačičku)";
+		return "command.cat.description";
 	}
 
 	@Override
 	public String getUsage() {
-		return "cat";
+		return "";
 	}
 
 	@Override

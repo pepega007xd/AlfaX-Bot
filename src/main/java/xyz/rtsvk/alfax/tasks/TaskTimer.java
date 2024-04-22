@@ -26,6 +26,7 @@ public class TaskTimer extends Thread {
 
 	public TaskTimer(GatewayDiscordClient client, long interval) {
 		this.last = System.currentTimeMillis();
+		this.setName("TaskTimer");
 		this.client = client;
 		this.logger = new Logger(this.getClass());
 		this.interval = interval;
@@ -80,7 +81,7 @@ public class TaskTimer extends Thread {
 	public void setEnabled(boolean enabled) {
 		this.running = enabled;
 		if (this.running) {
-			this.last = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+			this.last = System.currentTimeMillis();
 			this.start();
 		}
 	}

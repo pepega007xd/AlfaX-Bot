@@ -21,10 +21,21 @@ import xyz.rtsvk.alfax.util.text.TextUtils;
 import xyz.rtsvk.alfax.webserver.WebServer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Main class of the bot
+ */
 public class Main {
+
+	/**
+	 * Main method
+	 * @param args command line arguments
+	 * @throws Exception if an error occurred
+	 */
 	public static void main(String[] args) throws Exception {
 
 		final Config config = Config.from(args);
@@ -72,11 +83,11 @@ public class Main {
 		final String defaultLanguage = config.getString("default-language");
 		final boolean forceDefaultLanguage = config.getBoolean("force-default-language");
 
-		CommandProcessor proc = new CommandProcessor();
+		CommandProcessor proc = new CommandProcessor(prefix);
 		proc.setFallback(new HelpCommand(proc) {
 			@Override
 			public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
-				chat.sendMessage("Neznamy prikaz!");
+				chat.sendMessage(language.getFormattedString("command.not-found").addParam("prefix", prefix).build());
 				super.handle(user, chat, args, guildId, bot, language);
 			}
 		});
@@ -110,6 +121,7 @@ public class Main {
 		proc.registerCommand(new SetLanguageCommand());
 		proc.registerCommand(new ClearMessageManagerCacheCommand());
 		proc.registerCommand(new ServiceInfoCommand(() -> Thread.getAllStackTraces().keySet()));
+		proc.registerCommand(new GetEmojiCommand());
 		//proc.registerCommand(new PlayCommand(playerManager, player, provider, trackScheduler));
 
 		ServiceWatcher watcher = new ServiceWatcher();
@@ -142,6 +154,7 @@ public class Main {
 		final String commandOnTag = config.getString("command-on-tag");
 		logger.info("Command on tag: " + commandOnTag);
 		List<Thread> runningCommandExecutors = new ArrayList<>();
+		Map<Snowflake, List<String>> lastMessageCount = new HashMap<>();
 		gateway.on(MessageCreateEvent.class).subscribe(event -> {
 			try {
 				final Message message = event.getMessage();
@@ -153,6 +166,20 @@ public class Main {
 				assert channel != null;
 
 				final String msg = message.getContent().trim();
+
+				if (lastMessageCount.containsKey(channel.getId()) && config.getBoolean("spammer-enabled")) {
+					List<String> lastMessages = lastMessageCount.get(channel.getId());
+					logger.info("Last message count: " + lastMessages.size() + " (channel=" + channel.getId().asString() + ")");
+					lastMessages.add(msg);
+					if (lastMessages.stream().allMatch(lm -> lm.equals(msg)) && lastMessages.size() >= 3) {
+						channel.createMessage(msg).block();
+						lastMessages.clear();
+					}
+				}
+				else {
+					lastMessageCount.put(channel.getId(), new ArrayList<>(List.of(msg)));
+				}
+
 				if (!msg.startsWith(botMention) && !msg.startsWith(prefix)) return;
 				final List<String> tokenList = CommandProcessor.splitCommandString(msg);
 				final String first = tokenList.get(0);
@@ -169,16 +196,17 @@ public class Main {
 				}
 
 				String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : commandOnTag;
+				logger.info(TextUtils.format("Command received: ${0} (user=${1}, channel=${2})", msg, user.getUsername(), channel.getId().asString()));
 				Thread cmdThread = new Thread(() -> {
 					try {
 						Command cmd = proc.getCommandExecutor(cmdName);
 						Snowflake messageId = message.getId();
+						Chat chat = new DiscordChat(channel, messageId, prefix);
 						if (cmd == null) {
-							channel.createMessage(language.formatMessage("command.not-found", prefix))
-									.withMessageReference(messageId).block();
+							chat.sendMessage(language.getFormattedString("command.not-found").addParam("prefix", prefix).build());
 						}
 						else {
-							cmd.handle(user, new DiscordChat(channel, messageId), tokenList.subList(1, tokenList.size()), guildId, gateway, language);
+							cmd.handle(user, chat, tokenList.subList(1, tokenList.size()), guildId, gateway, language);
 						}
 
 					} catch (Exception e) {

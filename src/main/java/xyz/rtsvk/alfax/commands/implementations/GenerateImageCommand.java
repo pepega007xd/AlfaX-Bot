@@ -24,7 +24,7 @@ public class GenerateImageCommand implements Command {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		if (this.config.getBoolean("openai-disabled") || this.config.getBoolean("openai-image-disabled")) {
-			chat.sendMessage("Tento prikaz je zakazany administratorom!");
+			chat.sendMessage(language.getMessage("command.generate-image.disabled"));
 			return;
 		}
 
@@ -36,7 +36,7 @@ public class GenerateImageCommand implements Command {
 
 		String messageContent = message.toString();
 		if (messageContent.isEmpty()) {
-			chat.sendMessage("Nedal si mi prompt bratu :(");
+			chat.sendMessage(language.getMessage("command.generate-image.no-prompt"));
 			return;
 		}
 
@@ -60,7 +60,7 @@ public class GenerateImageCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Uses ChatGPT to generate an image";
+		return "command.generate-image.description";
 	}
 
 	@Override

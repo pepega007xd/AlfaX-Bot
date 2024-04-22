@@ -17,20 +17,23 @@ public class CreateUserCommand implements Command {
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		String userId = user.getId().asString();
 		if (Database.userExists(userId)) {
-			chat.sendMessage("Uz si zaregistrovany!");
+			chat.sendMessage(language.getMessage("command.register.already-registered"));
 			return;
 		}
 
-		String hash = TextUtils.hash(userId + System.currentTimeMillis() + Math.random());
-		Database.addUser(userId, hash, Database.PERMISSION_NONE);
 		PrivateChannel dm = user.getPrivateChannel().block();
 		if (dm != null) {
-			chat.sendMessage("Tvoj API token bol vytvoreny, pozri sa do DMs.");
-			dm.createMessage("Tvoj API token bol vytvoreny. Mas prava na pouzivanie ChatGPT, TTS a generovanie obrazkov.\n" +
-					"Tvoj token je:" + hash).block();
+			String hash = TextUtils.hash(userId + System.currentTimeMillis() + Math.random());
+			if (Database.addUser(userId, hash, Database.PERMISSION_NONE)) {
+				chat.sendMessage(language.getMessage("command.register.success"));
+				dm.createMessage(language.getFormattedString("command.register.success-dm").addParam("token", hash).build()).block();
+			}
+			else {
+				chat.sendMessage(language.getMessage("command.register.error"));
+			}
 		}
 		else {
-			chat.sendMessage("Nastala chyba pri generovani tokenu. Kontaktujte prosim vyvojara.");
+			chat.sendMessage(language.getMessage("command.register.dm-error"));
 		}
 	}
 
@@ -41,7 +44,7 @@ public class CreateUserCommand implements Command {
 
 	@Override
 	public String getDescription() {
-		return "Pouzivatel, ktory napise tento prikaz, si vyziada pristup k API.";
+		return "command.register.description";
 	}
 
 	@Override
