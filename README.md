@@ -32,19 +32,52 @@ All the commands have to start with the prefix, otherwise the bot will not respo
 
 ## Configuration
 You can configure the bot using the input arguments or specify the configuration file using the`--config=<path>` argument.
-The configuration file is in `.properties` format. You can generate the default configuration file using the `--default-config=<path>` argument.
-The configuration file has the following properties:
+The configuration file is in `.properties` format. You can generate the default configuration file using the `--default-config=<path>` argument, where <path>
+is the path to the file you want to put the default config in.
+The default configuration file contains these options:
+
+### General configuration
 - `token` - The bot's token
 - `prefix` - The bot's prefix
-- `weather-api-key` - The OpenWeatherMap API key
-- `webserver-port` - The webserver port
+- `scheduler-enabled` - enable the scheduler
+- `default-language` - default language to use
+- `force-default-language` - forces the use of the default language, effectively disabling localisation
+- `command-on-tag` - command to execute if the bot is tagged
+- `spammer-enabled` - spammer feature (if the last 3 messages in one channel were the same, the bot will send this message)
+
+### OpenWeatherMap API config
+- `weather-api-key` - API key
+- `weather-lang` - language of the response
+
+### MySQL config
 - `db-host` - The database host
 - `db-user` - The database username
 - `db-password` - The database password
 - `db-name` - The database name
-- `mqtt-uri` - The MQTT broker URI
-- `mqtt-username` - The MQTT broker username
-- `mqtt-password` - The MQTT broker password
+
+### OpenAI API config
+- `openai-disabled` - Enable the OpenAI feature
+- `openai-api-key` - OpenAI API key
+- `openai-timeout` - Request timeout interval in seconds
+- `openai-chat-model` - OpenAI Chat Completion model to use
+- `openai-tts-disabled` - Disables the text-to-speech command if true
+- `openai-tts-voice` - TTS voice (see [API docs](https://platform.openai.com/docs/guides/text-to-speech))
+- `openai-tts-model` - TTS model
+- `openai-image-disabled` - Disables the image generation command (*a lot more* expensive than the other OpenAI-related commands)
+- `openai-image-model` - OpenAI image generation model
+- `openai-image-size` - size of the generated image
+
+### HTTP server config
+- `webserver-enabled` - Enable the HTTP server feature
+- `webserver-port` - The webserver port
+- `webserver-timeout-ms` - Timeout interval for incoming requests
+
+### MQTT client config
+- `mqtt-enabled` - Enable the MQTT client feature
+- `mqtt-uri` - MQTT broker URI
+- `mqtt-client-id` - MQTT client ID
+- `mqtt-username` - MQTT broker username
+- `mqtt-password` - MQTT broker password
 
 ## Database
 The bot uses a MySQL database to store the users, their permissions and more. To ensure the best security, you should
@@ -73,4 +106,6 @@ The permission system has the following permissions:
 - Bit 0 - Full access to the bot's features             (0x01)
 - Bit 1 - Access to the API's channel message endpoint  (0x02)
 - Bit 2 - Access to the API's direct message endpoint   (0x04)
-- Bit 3 - Access to the `mqtt` command                  (0x08)
+- Bit 3 - Access to the `mqtt` feature                  (0x08)
+- Bit 4 - Permission to bypass the rate limit (WIP)     (0x10)
+- Bit 5 - Access to the GET-enabled HTTP endpoint       (0x20)

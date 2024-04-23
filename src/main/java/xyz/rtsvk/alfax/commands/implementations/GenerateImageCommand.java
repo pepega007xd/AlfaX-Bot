@@ -46,7 +46,7 @@ public class GenerateImageCommand implements Command {
 		CreateImageRequest image = CreateImageRequest.builder()
 				.model(this.config.getString("openai-image-model"))
 				.prompt(messageContent)
-				.size("1024x1024")
+				.size(this.config.getString("openai-image-size"))
 				.n(1).build();
 
 		Image generatedImage = service.createImage(image).getData().get(0);
