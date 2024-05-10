@@ -4,6 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.event.domain.message.ReactionAddEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
@@ -11,6 +12,9 @@ import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.commands.implementations.*;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
+import xyz.rtsvk.alfax.reactions.IReactionCallback;
+import xyz.rtsvk.alfax.reactions.ReactionCallbackRegister;
+import xyz.rtsvk.alfax.reactions.impl.BookmarkReactionCallback;
 import xyz.rtsvk.alfax.scheduler.CommandExecutionScheduler;
 import xyz.rtsvk.alfax.tasks.TaskTimer;
 import xyz.rtsvk.alfax.util.*;
@@ -20,10 +24,8 @@ import xyz.rtsvk.alfax.util.text.MessageManager;
 import xyz.rtsvk.alfax.util.text.TextUtils;
 import xyz.rtsvk.alfax.webserver.WebServer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -155,6 +157,7 @@ public class Main {
 		logger.info("Command on tag: " + commandOnTag);
 		List<Thread> runningCommandExecutors = new ArrayList<>();
 		Map<Snowflake, List<String>> lastMessageCount = new HashMap<>();
+		boolean spammerEnabled = config.getBoolean("spammer-enabled");
 		gateway.on(MessageCreateEvent.class).subscribe(event -> {
 			try {
 				final Message message = event.getMessage();
@@ -167,7 +170,7 @@ public class Main {
 
 				final String msg = message.getContent().trim();
 
-				if (lastMessageCount.containsKey(channel.getId()) && config.getBoolean("spammer-enabled")) {
+				if (spammerEnabled && lastMessageCount.containsKey(channel.getId())) {
 					List<String> lastMessages = lastMessageCount.get(channel.getId());
 					logger.info("Last message count: " + lastMessages.size() + " (channel=" + channel.getId().asString() + ")");
 					lastMessages.add(msg);
@@ -175,8 +178,7 @@ public class Main {
 						channel.createMessage(msg).block();
 						lastMessages.clear();
 					}
-				}
-				else {
+				} else {
 					lastMessageCount.put(channel.getId(), new ArrayList<>(List.of(msg)));
 				}
 
@@ -198,20 +200,17 @@ public class Main {
 				String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : commandOnTag;
 				logger.info(TextUtils.format("Command received: ${0} (user=${1}, channel=${2})", msg, user.getUsername(), channel.getId().asString()));
 				Thread cmdThread = new Thread(() -> {
+					Command cmd = proc.getCommandExecutor(cmdName);
+					Chat chat = new DiscordChat(channel, message.getId(), prefix);
 					try {
-						Command cmd = proc.getCommandExecutor(cmdName);
-						Snowflake messageId = message.getId();
-						Chat chat = new DiscordChat(channel, messageId, prefix);
 						if (cmd == null) {
 							chat.sendMessage(language.getFormattedString("command.not-found").addParam("prefix", prefix).build());
-						}
-						else {
+						} else {
 							cmd.handle(user, chat, tokenList.subList(1, tokenList.size()), guildId, gateway, language);
 						}
-
 					} catch (Exception e) {
 						e.printStackTrace(System.out);
-						channel.createMessage("**:x: " + e.getMessage() + "**").withMessageReference(message.getId()).block();
+						chat.sendMessage("**:x: " + e.getMessage() + "**");
 					}
 				});
 				cmdThread.start();
@@ -221,6 +220,27 @@ public class Main {
 
 			} catch (Exception e) {
 				e.printStackTrace(System.out);
+			}
+		});
+
+		ReactionCallbackRegister rce = new ReactionCallbackRegister();
+		rce.addReactionCallback(new BookmarkReactionCallback());
+
+		gateway.on(ReactionAddEvent.class).subscribe(event -> {
+			try {
+				System.out.println("reaction added");
+				Optional<IReactionCallback> cb = rce.getReactionCallback(event.getEmoji());
+				if (cb.isPresent()) {
+					System.out.println("callback present, firing");
+					Message message = event.getMessage().block();
+					User user = event.getUser().block();
+					MessageManager language = forceDefaultLanguage
+							? MessageManager.getMessages(defaultLanguage)
+							: Database.getUserLanguage(user.getId(), defaultLanguage);
+					cb.get().handle(message, user, language);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		});
 
@@ -254,5 +274,22 @@ public class Main {
 			logger.error("Disconnected from Discord! Shutting down...");
 			Runtime.getRuntime().exit(1);
 		});
+
+		logger.info("Bot is ready!");
+		Scanner scanner = new Scanner(System.in);
+		while (scanner.hasNextLine()) {
+			String[] line = scanner.nextLine().split(" ", 2);;
+			String key = line[0];
+			String value = line.length > 1 ? line[1] : "";
+			config.forEach((k, v) -> {
+				if (!k.equals(key)) return;
+				if (value.isEmpty()) {
+					logger.info(k + "=" + v);
+				} else {
+					config.put(k, value);
+					logger.info("Set " + k + " to " + value);
+				}
+			});
+		}
 	}
 }
