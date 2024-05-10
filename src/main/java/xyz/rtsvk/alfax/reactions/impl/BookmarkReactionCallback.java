@@ -10,7 +10,7 @@ import xyz.rtsvk.alfax.util.text.TextUtils;
 
 public class BookmarkReactionCallback implements IReactionCallback {
 	@Override
-	public void handle(Message message, User whoClicked, MessageManager lang, int reactionsCount) throws Exception {
+	public void handle(Message message, User whoClicked, MessageManager lang, long reactionsCount) throws Exception {
 		String guildId;
 		if (message.getGuildId().isPresent()) {
 			guildId = message.getGuildId().get().asString();

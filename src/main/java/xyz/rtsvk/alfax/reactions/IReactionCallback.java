@@ -6,6 +6,6 @@ import discord4j.core.object.reaction.ReactionEmoji;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
 public interface IReactionCallback {
-	void handle(Message message, User whoClicked, MessageManager lang, int reactionsCount) throws Exception;
+	void handle(Message message, User whoClicked, MessageManager lang, long reactionsCount) throws Exception;
 	ReactionEmoji getEmoji();
 }

@@ -8,6 +8,7 @@ import discord4j.core.event.domain.message.ReactionAddEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.object.reaction.ReactionEmoji;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.commands.implementations.*;
@@ -229,7 +230,8 @@ public class Main {
 		gateway.on(ReactionAddEvent.class).subscribe(event -> {
 			try {
 				System.out.println("reaction added");
-				Optional<IReactionCallback> cb = rce.getReactionCallback(event.getEmoji());
+				ReactionEmoji emoji = event.getEmoji();
+				Optional<IReactionCallback> cb = rce.getReactionCallback(emoji);
 				if (cb.isPresent()) {
 					System.out.println("callback present, firing");
 					Message message = event.getMessage().block();
@@ -237,7 +239,10 @@ public class Main {
 					MessageManager language = forceDefaultLanguage
 							? MessageManager.getMessages(defaultLanguage)
 							: Database.getUserLanguage(user.getId(), defaultLanguage);
-					cb.get().handle(message, user, language);
+					long reactionCount = message.getReactions().stream()
+							.filter(r -> r.getEmoji().equals(emoji))
+							.count();
+					cb.get().handle(message, user, language, reactionCount);
 				}
 			} catch (Exception e) {
 				e.printStackTrace();

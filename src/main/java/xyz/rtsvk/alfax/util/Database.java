@@ -41,7 +41,7 @@ public class Database {
 		botConfig = config;
 	}
 
-	public static void init(String host, String user, String password, String db) {
+	public static synchronized void init(String host, String user, String password, String db) {
 		logger = new Logger(Database.class);
 		initialized = false;
 		try {
@@ -77,7 +77,7 @@ public class Database {
 		}
 	}
 
-	public static boolean close() {
+	public static synchronized boolean close() {
 		if (!initialized) return false;
 
 		try {
@@ -91,7 +91,7 @@ public class Database {
 		}
 	}
 
-	public static boolean schedule(String commandName, String description, String channelId, String guildId, LocalDate execDate, LocalTime execTime, String days) {
+	public static synchronized boolean schedule(String commandName, String description, String channelId, String guildId, LocalDate execDate, LocalTime execTime, String days) {
 		if (!initialized) return false;
 
 		try {
@@ -115,7 +115,7 @@ public class Database {
 		}
 	}
 
-	public static List<Task> getScheduleFor(LocalDate date) {
+	public static synchronized List<Task> getScheduleFor(LocalDate date) {
 		List<Task> tasks = new ArrayList<>();
 		if(!initialized) return tasks;
 		try (Statement st = conn.createStatement();
@@ -145,7 +145,7 @@ public class Database {
 		return addUser(id, hash, PERMISSION_API);
 	}
 
-	public static boolean addUser(String id, String hash, int permissions) {
+	public static synchronized boolean addUser(String id, String hash, int permissions) {
 		if (!initialized) return false;
 
 		try {
@@ -169,7 +169,7 @@ public class Database {
 		}
 	}
 
-	public static MessageManager getUserLanguage(Snowflake id, String defaultLang) {
+	public static synchronized MessageManager getUserLanguage(Snowflake id, String defaultLang) {
 		if (!initialized) return null;
 
 		if (languageCache.containsKey(id))
@@ -199,7 +199,7 @@ public class Database {
 
 	}
 
-	public static boolean setUserLanguage(Snowflake id, String lang) {
+	public static synchronized boolean setUserLanguage(Snowflake id, String lang) {
 		if (!initialized) return false;
 
 		try {
@@ -216,7 +216,7 @@ public class Database {
 		}
 	}
 
-	public static boolean setUserCredits(Snowflake id, long credits) {
+	public static synchronized boolean setUserCredits(Snowflake id, long credits) {
 		if (!initialized) return false;
 
 		try {
@@ -232,7 +232,7 @@ public class Database {
 		}
 	}
 
-	public static boolean addUserCredits(Snowflake id, long credits) {
+	public static synchronized boolean addUserCredits(Snowflake id, long credits) {
 		if (!initialized) return false;
 
 		try {
@@ -250,7 +250,7 @@ public class Database {
 		}
 	}
 
-	public static boolean subtractUserCredits(Snowflake id, long credits) {
+	public static synchronized boolean subtractUserCredits(Snowflake id, long credits) {
 		if (!initialized) return false;
 
 		try {
@@ -268,7 +268,7 @@ public class Database {
 		}
 	}
 
-	public static long getUserCredits(Snowflake id) {
+	public static synchronized long getUserCredits(Snowflake id) {
 		if (!initialized) return -1;
 
 		try {
@@ -292,7 +292,7 @@ public class Database {
 		}
 	}
 
-	public static UserInfo getUserInfo(Snowflake id) {
+	public static synchronized UserInfo getUserInfo(Snowflake id) {
 		if (!initialized) return null;
 
 		try {
@@ -321,7 +321,7 @@ public class Database {
 			return null;
 		}
 	}
-	public static boolean createPoll(Snowflake channelId, String question, List<String> options) {
+	public static synchronized boolean createPoll(Snowflake channelId, String question, List<String> options) {
 		if (!initialized) return false;
 
 		try {
@@ -351,7 +351,7 @@ public class Database {
 		}
 	}
 
-	public static boolean endPoll(Snowflake channelId) {
+	public static synchronized boolean endPoll(Snowflake channelId) {
 		if (!initialized) return false;
 
 		try {
@@ -367,7 +367,7 @@ public class Database {
 		}
 	}
 
-	public static boolean votePoll(Snowflake channelId, String option) {
+	public static synchronized boolean votePoll(Snowflake channelId, String option) {
 		if (!initialized) return false;
 
 		try {
@@ -403,7 +403,7 @@ public class Database {
 		}
 	}
 
-	public static boolean addPollOption(Snowflake channelId, String option) {
+	public static synchronized boolean addPollOption(Snowflake channelId, String option) {
 		if (!initialized) return false;
 
 		try {
@@ -429,7 +429,7 @@ public class Database {
 		}
 	}
 
-	public static Map<String, Integer> getLastPollResults(Snowflake channelId) {
+	public static synchronized Map<String, Integer> getLastPollResults(Snowflake channelId) {
 		if (!initialized) return new HashMap<>();
 
 		Map<String, Integer> results = new HashMap<>();
@@ -459,11 +459,11 @@ public class Database {
 		}
 	}
 
-	public static boolean checkPermissions(Snowflake id, byte permissions) {
+	public static synchronized boolean checkPermissions(Snowflake id, byte permissions) {
 		return checkPermissions(id.asString(), permissions);
 	}
 
-	public static boolean checkPermissions(String id, byte permissions) {
+	public static synchronized boolean checkPermissions(String id, byte permissions) {
 		if (!initialized) return false;
 
 		try {
@@ -490,7 +490,7 @@ public class Database {
 		}
 	}
 
-	public static boolean checkPermissionsByKey(String key, byte permissions) {
+	public static synchronized boolean checkPermissionsByKey(String key, byte permissions) {
 		if (!initialized) return false;
 
 		try {
@@ -516,7 +516,7 @@ public class Database {
 		}
 	}
 
-	public static boolean updateUserPermissions(String id, int permissions) {
+	public static synchronized boolean updateUserPermissions(String id, int permissions) {
 		if (!initialized) return false;
 
 		try {
@@ -544,7 +544,7 @@ public class Database {
 		}
 	}
 
-	public static boolean setAnnouncementChannel(Snowflake guild, Snowflake channel) {
+	public static synchronized boolean setAnnouncementChannel(Snowflake guild, Snowflake channel) {
 		if (!initialized) return false;
 
 		try {
@@ -568,7 +568,7 @@ public class Database {
 		}
 	}
 
-	public static Snowflake getAnnouncementChannel(Snowflake guild) {
+	public static synchronized Snowflake getAnnouncementChannel(Snowflake guild) {
 		if (!initialized) return null;
 
 		try {
@@ -595,7 +595,7 @@ public class Database {
 		}
 	}
 
-	public static boolean registerSensor(String key, String description, String type, String unit, float min, float max) {
+	public static synchronized boolean registerSensor(String key, String description, String type, String unit, float min, float max) {
 		if (!initialized) return false;
 
 		try {
@@ -621,7 +621,7 @@ public class Database {
 		}
 	}
 
-	public static boolean addEvent(String name, String description, String time, Snowflake guild) {
+	public static synchronized boolean addEvent(String name, String description, String time, Snowflake guild) {
 		if (!initialized) return false;
 
 		try {
@@ -644,11 +644,11 @@ public class Database {
 		}
 	}
 
-	public static boolean updateSensorData(SensorData data) {
+	public static synchronized boolean updateSensorData(SensorData data) {
 		return false;
 	}
 
-	public static int getAdminCount() {
+	public static synchronized int getAdminCount() {
 		if (!initialized) return -1;
 
 		try {
@@ -672,7 +672,7 @@ public class Database {
 		}
 	}
 
-	public static List<Event> getEvents() {
+	public static synchronized List<Event> getEvents() {
 		if (!initialized) return null;
 
 		List<Event> events = new ArrayList<>();
@@ -696,7 +696,7 @@ public class Database {
 		}
 	}
 
-	public static boolean userExists(String userId) {
+	public static synchronized boolean userExists(String userId) {
 		if (!initialized) return false;
 
 		try {
