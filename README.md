@@ -5,13 +5,14 @@ so I, as the developer, decided to publish it on GitHub, since the server's owne
 I will be adding more features to it, and I will be using it on my own server. If you want to use it on your own server, 
 I would really appreciate if you credited me as the bot's author. 
 This bot features a few simple commands that we were messing around with, and a few other features.
-The entire bot is written in Java, using Discord4J API.
+The entire bot is written in Java, using Discord4J API. 
 
 ## Features
-- A few simple commands
-- Command execution scheduler, if you want to run a certain command at a certain time (Not implemented yet) 
+- Basic commands
+- Command execution scheduler, if you want to run a certain command at a certain time (WIP) 
 - Simple webserver that allows the developers to use the bot as a webhook
 - MQTT client, that allows the bot to send messages to an MQTT broker to, for example, retrieve data from a sensor
+- ChatGPT integration, implemented using [openai-java](https://github.com/TheoKanning/openai-java) library created by TheoKanning
 
 ## Commands
 Note: you can change the prefix in the configuration file or by using the program argument `--prefix=<prefix>`.
@@ -109,3 +110,6 @@ The permission system has the following permissions:
 - Bit 3 - Access to the `mqtt` feature                  (0x08)
 - Bit 4 - Permission to bypass the rate limit (WIP)     (0x10)
 - Bit 5 - Access to the GET-enabled HTTP endpoint       (0x20)
+
+## License
+Published under the MIT License
