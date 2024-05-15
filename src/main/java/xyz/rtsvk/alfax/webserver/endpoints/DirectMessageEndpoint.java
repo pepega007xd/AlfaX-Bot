@@ -1,4 +1,4 @@
-package xyz.rtsvk.alfax.webserver.actions;
+package xyz.rtsvk.alfax.webserver.endpoints;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
@@ -9,7 +9,7 @@ import xyz.rtsvk.alfax.webserver.Request;
 
 import java.util.List;
 
-public class DirectMessageAction implements IAction {
+public class DirectMessageEndpoint implements IEndpoint {
 	@Override
 	public ActionResult handle(GatewayDiscordClient client, Request request) {
 

@@ -1,6 +1,6 @@
 package xyz.rtsvk.alfax.webserver;
 
-import xyz.rtsvk.alfax.webserver.contentparsing.Content;
+import xyz.rtsvk.alfax.webserver.contentparsing.IContent;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class Request {
 		this.requestBody = body;
 	}
 
-	public static Request parseRequest(BufferedInputStream in, Map<String, Content> supportedContentTypes) throws IOException {
+	public static Request parseRequest(BufferedInputStream in, Map<String, IContent> supportedContentTypes) throws IOException {
 		StreamOutput streamOutput = readStreamUntil(in, "\n\n");
 		String raw = streamOutput.getData();
 		Header header = parseRequestHeader(raw);
@@ -42,7 +42,7 @@ public class Request {
 			sb.append(new String(buf, 0, read));
 		}
 
-		Content c = supportedContentTypes.get(contentType);
+		IContent c = supportedContentTypes.get(contentType);
 		if (c != null && length > 0 && !sb.isEmpty())
 			return new Request(header, c.parse(sb.toString()));
 

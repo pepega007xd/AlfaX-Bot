@@ -3,8 +3,8 @@ package xyz.rtsvk.alfax.webserver;
 import discord4j.core.GatewayDiscordClient;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.util.Config;
-import xyz.rtsvk.alfax.webserver.actions.*;
-import xyz.rtsvk.alfax.webserver.contentparsing.Content;
+import xyz.rtsvk.alfax.webserver.endpoints.*;
+import xyz.rtsvk.alfax.webserver.contentparsing.IContent;
 import xyz.rtsvk.alfax.webserver.contentparsing.CsvContent;
 import xyz.rtsvk.alfax.webserver.contentparsing.JsonContent;
 
@@ -17,11 +17,30 @@ import java.util.Map;
 
 public class WebServer extends Thread {
 
+	/**
+	 * Discord client
+	 */
 	private final GatewayDiscordClient client;
+
+	/**
+	 * Startup config
+	 */
 	private final Config cfg;
+
+	/**
+	 * MQTT client
+	 */
 	private final Mqtt mqtt;
-	private final Map<String, Content> supportedContentTypes;
-	private final List<Action> actions;
+
+	/**
+	 * Map containing content types
+	 */
+	private final Map<String, IContent> supportedContentTypes;
+
+	/**
+	 * List of endpoints
+	 */
+	private final List<IEndpoint> endpoints;
 	private boolean running;
 
 	public WebServer(Config cfg, GatewayDiscordClient client) {
@@ -33,16 +52,16 @@ public class WebServer extends Thread {
 		this.supportedContentTypes.put("application/json", new JsonContent());
 		this.supportedContentTypes.put("application/x-www-form-urlencoded", new CsvContent());
 
-		this.actions = new ArrayList<>();
-		this.actions.add(new ChannelMessageAction());
-		this.actions.add(new DirectMessageAction());
-		this.actions.add(new GetFileAction());
-		this.actions.add(new EditMessageAction());
+		this.endpoints = new ArrayList<>();
+		this.endpoints.add(new ChannelMessageEndpoint());
+		this.endpoints.add(new DirectMessageEndpoint());
+		this.endpoints.add(new GetFileEndpoint());
+		this.endpoints.add(new EditMessageEndpoint());
 
 		if (this.cfg.getBoolean("mqtt-enabled")) {
 			this.mqtt = new Mqtt(cfg, client);
-			this.mqtt.setClientId("Alfa-X Bot WebServer");
-			this.actions.add(new MqttPublishAction(this.mqtt));
+			this.mqtt.setClientId(cfg.getString("mqtt-web-client-id"));
+			this.endpoints.add(new MqttPublishEndpoint(this.mqtt));
 		}
 		else {
 			this.mqtt = null;
@@ -87,11 +106,11 @@ public class WebServer extends Thread {
 		return this.mqtt;
 	}
 
-	public Map<String, Content> getSupportedContentTypes() {
+	public Map<String, IContent> getSupportedContentTypes() {
 		return this.supportedContentTypes;
 	}
 
-	public List<Action> getActions() {
-		return this.actions;
+	public List<IEndpoint> getEndpoints() {
+		return this.endpoints;
 	}
 }

@@ -5,7 +5,7 @@ import org.json.simple.parser.ParseException;
 
 import java.util.Map;
 
-public class JsonContent implements Content {
+public class JsonContent implements IContent {
 	@Override
 	public Map<String, Object> parse(String s) {
 		try {

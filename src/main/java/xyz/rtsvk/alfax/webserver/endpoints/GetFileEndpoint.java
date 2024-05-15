@@ -1,4 +1,4 @@
-package xyz.rtsvk.alfax.webserver.actions;
+package xyz.rtsvk.alfax.webserver.endpoints;
 
 import discord4j.core.GatewayDiscordClient;
 import xyz.rtsvk.alfax.util.Database;
@@ -10,11 +10,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GetFileAction implements IAction {
+public class GetFileEndpoint implements IEndpoint {
 
 	private Map<String, String> contentTypes;
 
-	public GetFileAction() {
+	public GetFileEndpoint() {
 		this.contentTypes = new HashMap<>();
 		this.contentTypes.put("html", "text/html");
 		this.contentTypes.put("txt", "text/plain");

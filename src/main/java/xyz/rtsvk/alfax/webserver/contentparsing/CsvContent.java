@@ -2,10 +2,9 @@ package xyz.rtsvk.alfax.webserver.contentparsing;
 
 import xyz.rtsvk.alfax.util.PropertiesParser;
 
-import java.util.HashMap;
 import java.util.Map;
 
-public class CsvContent implements Content {
+public class CsvContent implements IContent {
 
 	private static final PropertiesParser parser = new PropertiesParser("&");
 

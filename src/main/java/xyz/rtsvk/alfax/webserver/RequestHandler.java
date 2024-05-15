@@ -6,17 +6,13 @@ import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.Logger;
 import xyz.rtsvk.alfax.util.text.FormattedString;
 import xyz.rtsvk.alfax.util.text.TextUtils;
-import xyz.rtsvk.alfax.webserver.actions.*;
-import xyz.rtsvk.alfax.webserver.contentparsing.Content;
-import xyz.rtsvk.alfax.webserver.contentparsing.CsvContent;
-import xyz.rtsvk.alfax.webserver.contentparsing.JsonContent;
+import xyz.rtsvk.alfax.webserver.endpoints.*;
+import xyz.rtsvk.alfax.webserver.contentparsing.IContent;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,8 +24,8 @@ public class RequestHandler implements Runnable {
 	private final GatewayDiscordClient client;
 	private final Logger logger;
 
-	private final Map<String, Content> supportedContentTypes;
-	private final List<Action> actions;
+	private final Map<String, IContent> supportedContentTypes;
+	private final List<IEndpoint> actions;
 	private final Config cfg;
 	private final int timeout;
 
@@ -38,7 +34,7 @@ public class RequestHandler implements Runnable {
 		this.cfg = server.getConfig();
 		this.client = server.getDiscordClient();
 		this.supportedContentTypes = server.getSupportedContentTypes();
-		this.actions = server.getActions();
+		this.actions = server.getEndpoints();
 		this.timeout = timeout;
 
 		this.httpClient = httpClient;
@@ -70,9 +66,9 @@ public class RequestHandler implements Runnable {
 			ActionResult result;
 			String key = request.getPropertyAsString("auth_key");
 			String path = request.getPath();
-			Action action = this.actions.stream()
+			IEndpoint action = this.actions.stream()
 					.filter(a -> TextUtils.match(path, a.getEndpointName()))
-					.findFirst().orElse(new EndpointNotFoundAction());
+					.findFirst().orElse(new EndpointNotFoundEndpoint());
 
 			if (key == null) {
 				result = ActionResult.unauthorized("Missing auth_key parameter!");

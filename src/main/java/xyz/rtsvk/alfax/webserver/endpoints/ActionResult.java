@@ -1,4 +1,4 @@
-package xyz.rtsvk.alfax.webserver.actions;
+package xyz.rtsvk.alfax.webserver.endpoints;
 
 import xyz.rtsvk.alfax.webserver.Response;
 

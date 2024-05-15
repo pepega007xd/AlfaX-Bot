@@ -5,10 +5,14 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.event.domain.message.ReactionAddEvent;
+import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
+import discord4j.discordjson.json.ApplicationCommandOptionData;
+import discord4j.discordjson.json.ApplicationCommandRequest;
+import discord4j.rest.service.ApplicationService;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.commands.implementations.*;
@@ -168,19 +172,20 @@ public class Main {
 				final Snowflake guildId = message.getGuildId().orElse(null);
 				final MessageChannel channel = message.getChannel().block();
 				assert channel != null;
-
 				final String msg = message.getContent().trim();
 
-				if (spammerEnabled && lastMessageCount.containsKey(channel.getId())) {
-					List<String> lastMessages = lastMessageCount.get(channel.getId());
-					logger.info("Last message count: " + lastMessages.size() + " (channel=" + channel.getId().asString() + ")");
-					lastMessages.add(msg);
-					if (lastMessages.stream().allMatch(lm -> lm.equals(msg)) && lastMessages.size() >= 3) {
-						channel.createMessage(msg).block();
-						lastMessages.clear();
+				if (spammerEnabled) {
+					if (lastMessageCount.containsKey(channel.getId())) {
+						List<String> lastMessages = lastMessageCount.get(channel.getId());
+						logger.info("Last message count: " + lastMessages.size() + " (channel=" + channel.getId().asString() + ")");
+						lastMessages.add(msg);
+						if (lastMessages.stream().allMatch(lm -> lm.equals(msg)) && lastMessages.size() >= 3) {
+							channel.createMessage(msg).block();
+							lastMessages.clear();
+						}
+					} else {
+						lastMessageCount.put(channel.getId(), new ArrayList<>(List.of(msg)));
 					}
-				} else {
-					lastMessageCount.put(channel.getId(), new ArrayList<>(List.of(msg)));
 				}
 
 				if (!msg.startsWith(botMention) && !msg.startsWith(prefix)) return;
@@ -229,11 +234,9 @@ public class Main {
 
 		gateway.on(ReactionAddEvent.class).subscribe(event -> {
 			try {
-				System.out.println("reaction added");
 				ReactionEmoji emoji = event.getEmoji();
 				Optional<IReactionCallback> cb = rce.getReactionCallback(emoji);
 				if (cb.isPresent()) {
-					System.out.println("callback present, firing");
 					Message message = event.getMessage().block();
 					User user = event.getUser().block();
 					MessageManager language = forceDefaultLanguage
@@ -245,7 +248,7 @@ public class Main {
 					cb.get().handle(message, user, language, reactionCount);
 				}
 			} catch (Exception e) {
-				e.printStackTrace();
+				e.printStackTrace(System.out);
 			}
 		});
 
@@ -281,20 +284,5 @@ public class Main {
 		});
 
 		logger.info("Bot is ready!");
-		Scanner scanner = new Scanner(System.in);
-		while (scanner.hasNextLine()) {
-			String[] line = scanner.nextLine().split(" ", 2);;
-			String key = line[0];
-			String value = line.length > 1 ? line[1] : "";
-			config.forEach((k, v) -> {
-				if (!k.equals(key)) return;
-				if (value.isEmpty()) {
-					logger.info(k + "=" + v);
-				} else {
-					config.put(k, value);
-					logger.info("Set " + k + " to " + value);
-				}
-			});
-		}
 	}
 }

@@ -1,4 +1,4 @@
-package xyz.rtsvk.alfax.webserver.actions;
+package xyz.rtsvk.alfax.webserver.endpoints;
 
 import discord4j.core.GatewayDiscordClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -10,11 +10,11 @@ import xyz.rtsvk.alfax.webserver.Request;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class MqttPublishAction implements IAction {
+public class MqttPublishEndpoint implements IEndpoint {
 
 	private final Mqtt mqtt;
 
-	public MqttPublishAction(Mqtt mqtt) {
+	public MqttPublishEndpoint(Mqtt mqtt) {
 		this.mqtt = mqtt;
 	}
 
