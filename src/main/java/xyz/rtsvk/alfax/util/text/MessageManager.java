@@ -111,6 +111,9 @@ public class MessageManager {
 		return manager;
 	}
 
+	/**
+	 * Clears the cache
+	 */
 	public static void clearCache() {
 		cache.clear();
 	}

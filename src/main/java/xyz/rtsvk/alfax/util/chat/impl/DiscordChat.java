@@ -12,8 +12,8 @@ public class DiscordChat implements Chat {
 
 	private final MessageChannel discordChannel;
 	private final Snowflake invokerMessageId;
-	private Snowflake lastMessageId;
 	private final String commandPrefix;
+	private Snowflake lastMessageId;
 
 	public DiscordChat(MessageChannel discordChannel, Snowflake invokerMessageId, String commandPrefix) {
 		this.discordChannel = discordChannel;

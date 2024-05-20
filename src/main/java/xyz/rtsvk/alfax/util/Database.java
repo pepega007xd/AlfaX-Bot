@@ -170,12 +170,14 @@ public class Database {
 	}
 
 	public static synchronized MessageManager getUserLanguage(Snowflake id, String defaultLang) {
-		if (!initialized) return null;
-
-		if (languageCache.containsKey(id))
-			return languageCache.get(id);
-
+		MessageManager defaultLanguage = null;
 		try {
+			defaultLanguage = MessageManager.getMessages(defaultLang);
+			if (!initialized) return defaultLanguage;
+
+			if (languageCache.containsKey(id))
+				return languageCache.get(id);
+
 			Statement st = conn.createStatement();
 			ResultSet set = st.executeQuery("SELECT `language` FROM `auth` WHERE `id`='" + id.asString() + "';");
 			if (set.next()) {
@@ -194,7 +196,7 @@ public class Database {
 		}
 		catch (SQLException | IOException e) {
 			e.printStackTrace();
-			return null;
+			return defaultLanguage;
 		}
 
 	}

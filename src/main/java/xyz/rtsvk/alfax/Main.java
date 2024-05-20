@@ -5,14 +5,10 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.event.domain.message.ReactionAddEvent;
-import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.discordjson.json.ApplicationCommandOptionData;
-import discord4j.discordjson.json.ApplicationCommandRequest;
-import discord4j.rest.service.ApplicationService;
 import xyz.rtsvk.alfax.commands.Command;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.commands.implementations.*;
@@ -25,11 +21,12 @@ import xyz.rtsvk.alfax.tasks.TaskTimer;
 import xyz.rtsvk.alfax.util.*;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.chat.impl.DiscordChat;
+import xyz.rtsvk.alfax.util.ratelimit.RateLimitExceededException;
+import xyz.rtsvk.alfax.util.ratelimit.RateLimiter;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 import xyz.rtsvk.alfax.util.text.TextUtils;
 import xyz.rtsvk.alfax.webserver.WebServer;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -45,7 +42,7 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 
-		final Config config = Config.from(args);
+		final Config config = Config.fromCommandLineArgs(args);
 		final Logger logger = new Logger(Main.class);
 		FileManager.init();
 		Logger.setLogFile(config.getStringOrDefault("log-file", "latest.log"));
@@ -163,6 +160,7 @@ public class Main {
 		List<Thread> runningCommandExecutors = new ArrayList<>();
 		Map<Snowflake, List<String>> lastMessageCount = new HashMap<>();
 		boolean spammerEnabled = config.getBoolean("spammer-enabled");
+		RateLimiter commandRatelimiter = new RateLimiter(config.getInt("command-rate-limit"));
 		gateway.on(MessageCreateEvent.class).subscribe(event -> {
 			try {
 				final Message message = event.getMessage();
@@ -209,11 +207,15 @@ public class Main {
 					Command cmd = proc.getCommandExecutor(cmdName);
 					Chat chat = new DiscordChat(channel, message.getId(), prefix);
 					try {
+						commandRatelimiter.lock();
 						if (cmd == null) {
 							chat.sendMessage(language.getFormattedString("command.not-found").addParam("prefix", prefix).build());
 						} else {
 							cmd.handle(user, chat, tokenList.subList(1, tokenList.size()), guildId, gateway, language);
 						}
+						commandRatelimiter.unlock();
+					} catch (RateLimitExceededException ree) {
+						chat.sendMessage(language.getMessage("general.error.rate-limit-exceeded"));
 					} catch (Exception e) {
 						e.printStackTrace(System.out);
 						chat.sendMessage("**:x: " + e.getMessage() + "**");
@@ -222,8 +224,6 @@ public class Main {
 				cmdThread.start();
 				cmdThread.setName("CommandExecutor-" + cmdName + "-" + System.currentTimeMillis());
 				runningCommandExecutors.add(cmdThread);
-
-
 			} catch (Exception e) {
 				e.printStackTrace(System.out);
 			}
