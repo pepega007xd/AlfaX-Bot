@@ -10,14 +10,14 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.voice.AudioProvider;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.lavaplayer.TrackScheduler;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
-public class PlayCommand implements Command {
+public class PlayCommand implements ICommand {
 
 
 	private final AudioPlayerManager playerManager;

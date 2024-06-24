@@ -3,7 +3,7 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.FormattedString;
@@ -11,7 +11,7 @@ import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
-public class HelpCommand implements Command {
+public class HelpCommand implements ICommand {
 
 	/**
 	 * Command processor
@@ -32,7 +32,7 @@ public class HelpCommand implements Command {
 
 		if (args.isEmpty()) {
 			sb.append(language.getMessage("command.help.label.commands") + "```\n");
-			final List<Command> cmds = this.processor.getCommands();
+			final List<ICommand> cmds = this.processor.getCommands();
 			cmds.forEach(e -> {
 				String desc = language.getMessage(e.getDescription());
 				if (desc == null) return;                   // if the command does not have a description, hide it
@@ -43,7 +43,7 @@ public class HelpCommand implements Command {
 		}
 		else {
 			String cmdName = args.get(0);
-			Command command = this.processor.getCommandExecutor(cmdName);
+			ICommand command = this.processor.getCommandExecutor(cmdName);
 			if (command == null) {
 				chat.sendMessage(language.getFormattedString("command.help.error.command-not-found").addParam("command", cmdName).build());
 				return;

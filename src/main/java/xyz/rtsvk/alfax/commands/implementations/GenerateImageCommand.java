@@ -6,7 +6,7 @@ import com.theokanning.openai.service.OpenAiService;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
@@ -14,7 +14,7 @@ import xyz.rtsvk.alfax.util.text.MessageManager;
 import java.time.Duration;
 import java.util.List;
 
-public class GenerateImageCommand implements Command {
+public class GenerateImageCommand implements ICommand {
 	private Config config;
 
 	public GenerateImageCommand(Config config) {

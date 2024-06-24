@@ -4,7 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
-import xyz.rtsvk.alfax.commands.CommandHandler;
+import xyz.rtsvk.alfax.commands.ICommandHandler;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.chat.impl.DiscordChat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class CommandSet {
 	private String name;
-	private Map<String, CommandHandler> commands;
+	private Map<String, ICommandHandler> commands;
 	private final List<Thread> executors;
 
 	/**
@@ -34,7 +34,7 @@ public class CommandSet {
 	 * @param name the name of the command
 	 * @param executor command executor
 	 */
-	protected void addCommand(String name, CommandHandler executor) {
+	protected void addCommand(String name, ICommandHandler executor) {
 		this.commands.put(name, executor);
 	}
 
@@ -43,7 +43,7 @@ public class CommandSet {
 	 * @param name the name of the command
 	 * @return the executor
 	 */
-	public CommandHandler getExecutor(String name) {
+	public ICommandHandler getExecutor(String name) {
 		return this.commands.get(name);
 	}
 

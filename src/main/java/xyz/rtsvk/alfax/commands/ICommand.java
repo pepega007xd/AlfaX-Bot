@@ -2,7 +2,7 @@ package xyz.rtsvk.alfax.commands;
 
 import java.util.List;
 
-public interface Command extends CommandHandler {
+public interface ICommand extends ICommandHandler {
 	/**
 	 * @return the command name
 	 */

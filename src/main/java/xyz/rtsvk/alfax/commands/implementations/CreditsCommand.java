@@ -4,7 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.spec.EmbedCreateSpec;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
@@ -12,7 +12,7 @@ import xyz.rtsvk.alfax.util.text.MessageManager;
 import java.time.Instant;
 import java.util.List;
 
-public class CreditsCommand implements Command {
+public class CreditsCommand implements ICommand {
 
 	private final Config config;
 

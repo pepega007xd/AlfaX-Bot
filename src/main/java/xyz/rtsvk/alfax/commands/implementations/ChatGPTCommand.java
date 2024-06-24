@@ -7,7 +7,7 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.chat.Chat;
@@ -17,7 +17,7 @@ import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ChatGPTCommand implements Command {
+public class ChatGPTCommand implements ICommand {
 
 	private final Config config;
 
@@ -77,7 +77,8 @@ public class ChatGPTCommand implements Command {
 				.build();
 		ChatCompletionResult result = service.createChatCompletion(completionRequest);
 		long tokenAmt = result.getUsage().getTotalTokens();
-		Database.subtractUserCredits(user.getId(), tokenAmt);
+		//Database.subtractUserCredits(user.getId(), tokenAmt);
+		Database.addTokenUsage(guildId, tokenAmt);
 		List<ChatCompletionChoice> choices = result.getChoices();
 		choices.forEach(e -> {
 			String text = e.getMessage().getContent();

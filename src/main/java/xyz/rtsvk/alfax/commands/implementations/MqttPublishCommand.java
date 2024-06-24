@@ -4,7 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.Database;
@@ -15,7 +15,7 @@ import xyz.rtsvk.alfax.util.text.MessageManager;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class MqttPublishCommand implements Command {
+public class MqttPublishCommand implements ICommand {
 
 	private Mqtt client;
 	private final Logger logger;

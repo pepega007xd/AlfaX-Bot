@@ -7,14 +7,14 @@ import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.PrivateChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.discordjson.json.EmojiData;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
-public class PollCreateCommand implements Command {
+public class PollCreateCommand implements ICommand {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		if (chat.getChannel() instanceof PrivateChannel pc) {

@@ -5,13 +5,13 @@ import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.VoiceState;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.User;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
-public class JoinVoiceCommand implements Command {
+public class JoinVoiceCommand implements ICommand {
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) throws Exception {
 		Member member = user.asMember(guildId).block();

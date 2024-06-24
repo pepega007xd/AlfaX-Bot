@@ -9,7 +9,7 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.commands.implementations.*;
 import xyz.rtsvk.alfax.mqtt.Mqtt;
@@ -87,7 +87,7 @@ public class Main {
 		final String defaultLanguage = config.getString("default-language");
 		final boolean forceDefaultLanguage = config.getBoolean("force-default-language");
 
-		CommandProcessor proc = new CommandProcessor(prefix);
+		CommandProcessor proc = new CommandProcessor(gateway, prefix);
 		proc.setFallback(new HelpCommand(proc) {
 			@Override
 			public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
@@ -189,7 +189,6 @@ public class Main {
 				if (!msg.startsWith(botMention) && !msg.startsWith(prefix)) return;
 				final List<String> tokenList = CommandProcessor.splitCommandString(msg);
 				final String first = tokenList.get(0);
-
 				MessageManager language = forceDefaultLanguage
 						? MessageManager.getMessages(defaultLanguage)
 						: Database.getUserLanguage(user.getId(), defaultLanguage);
@@ -204,7 +203,7 @@ public class Main {
 				String cmdName = first.startsWith(prefix) ? first.substring(prefix.length()) : commandOnTag;
 				logger.info(TextUtils.format("Command received: ${0} (user=${1}, channel=${2})", msg, user.getUsername(), channel.getId().asString()));
 				Thread cmdThread = new Thread(() -> {
-					Command cmd = proc.getCommandExecutor(cmdName);
+					ICommand cmd = proc.getCommandExecutor(cmdName);
 					Chat chat = new DiscordChat(channel, message.getId(), prefix);
 					try {
 						commandRatelimiter.lock();

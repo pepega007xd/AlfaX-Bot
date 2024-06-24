@@ -3,7 +3,7 @@ package xyz.rtsvk.alfax.scheduler;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.channel.MessageChannel;
 import xyz.rtsvk.alfax.util.Database;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.commands.CommandProcessor;
 import xyz.rtsvk.alfax.util.Logger;
 import xyz.rtsvk.alfax.util.text.MessageManager;
@@ -43,7 +43,7 @@ public class CommandExecutionScheduler extends Thread {
 			if (!tasks.isEmpty()) tasks.forEach(e -> {
 				final List<String> commandArgs = new ArrayList<>(Arrays.asList(e.getCommand().split(" ")));
 				String cmdName = commandArgs.remove(0);
-				Command cmd = proc.getCommandExecutor(cmdName);
+				ICommand cmd = proc.getCommandExecutor(cmdName);
 				MessageChannel channel = (MessageChannel) this.gateway.getChannelById(e.getChannel()).block();
 
 				LocalDate execDate = e.getExecDate() != null ? e.getExecDate() : now.toLocalDate();

@@ -7,7 +7,7 @@ import discord4j.core.spec.EmbedCreateSpec;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.Config;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
@@ -20,7 +20,7 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.List;
 
-public class WeatherCommand implements Command {
+public class WeatherCommand implements ICommand {
 
 	private final String apiKey;
 	private final String lang;

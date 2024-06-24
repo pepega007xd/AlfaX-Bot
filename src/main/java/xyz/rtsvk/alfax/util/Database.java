@@ -57,7 +57,7 @@ public class Database {
 			st.executeBatch();
 
 			st.addBatch("CREATE TABLE IF NOT EXISTS `system_info` (`vkey` varchar(64), `value` varchar(128), PRIMARY KEY(`vkey`));");
-			st.addBatch("CREATE TABLE IF NOT EXISTS `guilds` (`guild_id` varchar(128), `announcement_channel` varchar(128), PRIMARY KEY(`guild_id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `guilds` (`guild_id` varchar(128), `announcement_channel` varchar(128), `gpt_tokens_used` bigint, PRIMARY KEY(`guild_id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `schedule` (`id` int AUTO_INCREMENT, `command` varchar(32), `description` text, `channel` varchar(128), `guild` varchar(128), `exec_date` date, `exec_time` varchar(8), `days` varchar(16), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `events`(`id` int AUTO_INCREMENT, `name` varchar(128), `description` text, `time` long, `guild` varchar(128), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `auth` (`id` varchar(128), `auth_key` varchar(128), `permissions` int, `credits` long, `language` varchar(4), PRIMARY KEY(`id`));");
@@ -594,6 +594,44 @@ public class Database {
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return null;
+		}
+	}
+
+	public static synchronized boolean addTokenUsage(Snowflake guildId, long amount) {
+		if (!initialized) return false;
+
+		try {
+			Statement st = conn.createStatement();
+
+			String selectQuery = FormattedString
+					.create("SELECT `gpt_tokens_used` FROM `guilds` WHERE `guild_id`='${id}';")
+					.addParam("id", guildId.asString())
+					.build();
+			String updateQuery = FormattedString
+					.create("UPDATE `guilds` SET `gpt_tokens_used`=`gpt_tokens_used`+${amount} WHERE `guild_id`='${id}';")
+					.addParam("id", guildId.asString())
+					.addParam("amount", amount)
+					.build();
+			String insertQuery = FormattedString
+					.create("INSERT INTO `guilds`(`guild_id`, `gpt_tokens_used`) VALUES ('${id}', ${amount});")
+					.addParam("id", guildId.asString())
+					.addParam("amount", amount)
+					.build();
+
+			ResultSet set = st.executeQuery(selectQuery);
+			if (set.next()) {
+				st.execute(updateQuery);
+			} else {
+				st.execute(insertQuery);
+			}
+
+			set.close();
+			st.close();
+			return true;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
 		}
 	}
 

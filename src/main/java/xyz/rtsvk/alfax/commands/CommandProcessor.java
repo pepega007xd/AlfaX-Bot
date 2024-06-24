@@ -4,34 +4,48 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.discordjson.json.ApplicationCommandData;
+import discord4j.rest.service.ApplicationService;
 import xyz.rtsvk.alfax.util.Database;
 import xyz.rtsvk.alfax.util.chat.impl.DiscordChat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.*;
 
+/**
+ * Class for registration and processing of commands
+ * @author Jastrobaron
+ */
 public class CommandProcessor {
+
 	public static final Character SEPARATOR = ' ';
 	public static final List<Character> QUOTES = List.of('"', '\'');
-	private final List<Command> commands = new ArrayList<>();
-	private Command fallback = null;
-	private String prefix;
 
-	public CommandProcessor(String prefix) {
+	private final Map<ICommand, ApplicationCommandData> commands = new HashMap<>();
+	private final String prefix;
+	private final GatewayDiscordClient gateway;
+	private final long appId;
+	private ICommand fallback = null;
+
+	public CommandProcessor(GatewayDiscordClient gateway, String prefix) throws Exception {
+		this.gateway = gateway;
 		this.prefix = prefix;
+		this.appId = this.gateway.getRestClient().getApplicationId().blockOptional()
+				.orElseThrow(() -> new Exception("Could not get application ID"));
 	}
-	public Command getCommandExecutor(String command) {
+
+	public ICommand getCommandExecutor(String command) {
 		return this.getCommandExecutor(command, this.fallback);
 	}
 
-	public Command getCommandExecutor(String command, Command fallback) {
-		return this.commands.stream()
+	public ICommand getCommandExecutor(String command, ICommand fallback) {
+		return this.commands.keySet().stream()
 				.filter(cmd -> cmd.getName().equals(command) || cmd.getAliases().contains(command))
 				.findFirst().orElse(fallback);
 	}
 
 	public void executeCommand(String command, User user, Snowflake messageId, MessageChannel channel, List<String> args, Snowflake guildId, GatewayDiscordClient bot) {
-		Command cmd = this.getCommandExecutor(command);
+		ICommand cmd = this.getCommandExecutor(command);
 		MessageManager language = Database.getUserLanguage(user.getId(), "legacy");
 		if (cmd == null) {
 			cmd = this.fallback;
@@ -95,18 +109,40 @@ public class CommandProcessor {
 		return output.stream().map(String::trim).toList();
 	}
 
-	public void registerCommand(Command command) {
-		this.commands.add(command);
+	public void registerCommand(ICommand command) throws Exception {
+		if (command instanceof IApplicationCommand appCmd) {
+			ApplicationCommandData cmdData = this.gateway.getRestClient().getApplicationService()
+					.createGlobalApplicationCommand(this.appId, appCmd.getCommandCreateRequest())
+					.blockOptional().orElseThrow(Exception::new);
+			this.commands.put(command, cmdData);
+		} else {
+			this.commands.put(command, null);
+		}
 	}
 
-	public void setFallback(Command command) {
+	public void reloadCommands() {
+		ApplicationService service = this.gateway.getRestClient().getApplicationService();
+		this.commands.entrySet().stream().forEach(e -> {
+			if (e.getKey() instanceof IApplicationCommand appCmd) {
+				service.deleteGlobalApplicationCommand(this.appId, e.getValue().id().asLong());
+				service.createGlobalApplicationCommand(this.appId, appCmd.getCommandCreateRequest());
+			}
+		});
+	}
+
+	public void setFallback(ICommand command) {
 		this.fallback = command;
 	}
 
-	public List<Command> getCommands() {
-		return commands;
+	public List<ICommand> getCommands() {
+		return this.commands.keySet().stream().toList();
 	}
-	public Command getFallback() {
+
+	public ICommand getFallback() {
 		return this.fallback;
+	}
+
+	public long getApplicationId() {
+		return this.appId;
 	}
 }

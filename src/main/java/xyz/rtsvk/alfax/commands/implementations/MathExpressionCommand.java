@@ -3,7 +3,7 @@ package xyz.rtsvk.alfax.commands.implementations;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.User;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
-public class MathExpressionCommand implements Command {
+public class MathExpressionCommand implements ICommand {
 
 	private final List<Symbol> symtable = new ArrayList<>();
 

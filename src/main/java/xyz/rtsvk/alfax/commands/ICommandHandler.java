@@ -8,7 +8,7 @@ import xyz.rtsvk.alfax.util.text.MessageManager;
 
 import java.util.List;
 
-public interface CommandHandler {
+public interface ICommandHandler {
 	/**
 	 * Command executor method prototype
 	 * @param user     user that queried the command execution

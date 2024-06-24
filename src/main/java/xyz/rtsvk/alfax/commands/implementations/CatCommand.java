@@ -7,7 +7,7 @@ import discord4j.core.spec.EmbedCreateSpec;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import xyz.rtsvk.alfax.commands.Command;
+import xyz.rtsvk.alfax.commands.ICommand;
 import xyz.rtsvk.alfax.util.chat.Chat;
 import xyz.rtsvk.alfax.util.text.MessageManager;
 
@@ -19,7 +19,7 @@ import java.time.Instant;
 import java.util.List;
 
 
-public class CatCommand implements Command {
+public class CatCommand implements ICommand {
 
 	@Override
 	public void handle(User user, Chat chat, List<String> args, Snowflake guildId, GatewayDiscordClient bot, MessageManager language) {
