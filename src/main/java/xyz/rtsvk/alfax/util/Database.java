@@ -60,7 +60,7 @@ public class Database {
 			st.addBatch("CREATE TABLE IF NOT EXISTS `guilds` (`guild_id` varchar(128), `announcement_channel` varchar(128), `gpt_tokens_used` bigint, PRIMARY KEY(`guild_id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `schedule` (`id` int AUTO_INCREMENT, `command` varchar(32), `description` text, `channel` varchar(128), `guild` varchar(128), `exec_date` date, `exec_time` varchar(8), `days` varchar(16), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `events`(`id` int AUTO_INCREMENT, `name` varchar(128), `description` text, `time` long, `guild` varchar(128), PRIMARY KEY(`id`));");
-			st.addBatch("CREATE TABLE IF NOT EXISTS `auth` (`id` varchar(128), `auth_key` varchar(128), `permissions` int, `credits` long, `language` varchar(4), PRIMARY KEY(`id`));");
+			st.addBatch("CREATE TABLE IF NOT EXISTS `auth` (`id` varchar(128), `auth_key` varchar(128), `permissions` int, `credits` long, `tokens_used` bigint, `language` varchar(4), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `polls` (`id` int AUTO_INCREMENT, `channel` varchar(128), `question` text, is_closed int, PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `poll_options` (`id` int AUTO_INCREMENT, `poll_id` int, `option` varchar(128), PRIMARY KEY(`id`));");
 			st.addBatch("CREATE TABLE IF NOT EXISTS `poll_votes` (`id` int AUTO_INCREMENT, `poll_id` int, `user_id` varchar(128), `option_id` int, PRIMARY KEY(`id`));");
@@ -252,15 +252,18 @@ public class Database {
 		}
 	}
 
-	public static synchronized boolean subtractUserCredits(Snowflake id, long credits) {
+	public static synchronized boolean subtractUserCredits(Snowflake id, long amount) {
 		if (!initialized) return false;
 
 		try {
 			Statement st = conn.createStatement();
 
-			// update permissions
-			String sql = "UPDATE `auth` SET `credits`=`credits`-'" + credits + "' WHERE `id`='" + id.asString() + "';";
-			st.execute(sql);
+			String query = FormattedString
+					.create("UPDATE `auth` SET `credits`=`credits`-${amount}, `tokens_used`=`tokens_used`+${amount} WHERE `id`='${id}';")
+					.addParam("amount", amount)
+					.addParam("id", id.asString())
+					.build();
+			st.execute(query);
 			st.close();
 			return true;
 
@@ -597,44 +600,6 @@ public class Database {
 		}
 	}
 
-	public static synchronized boolean addTokenUsage(Snowflake guildId, long amount) {
-		if (!initialized) return false;
-
-		try {
-			Statement st = conn.createStatement();
-
-			String selectQuery = FormattedString
-					.create("SELECT `gpt_tokens_used` FROM `guilds` WHERE `guild_id`='${id}';")
-					.addParam("id", guildId.asString())
-					.build();
-			String updateQuery = FormattedString
-					.create("UPDATE `guilds` SET `gpt_tokens_used`=`gpt_tokens_used`+${amount} WHERE `guild_id`='${id}';")
-					.addParam("id", guildId.asString())
-					.addParam("amount", amount)
-					.build();
-			String insertQuery = FormattedString
-					.create("INSERT INTO `guilds`(`guild_id`, `gpt_tokens_used`) VALUES ('${id}', ${amount});")
-					.addParam("id", guildId.asString())
-					.addParam("amount", amount)
-					.build();
-
-			ResultSet set = st.executeQuery(selectQuery);
-			if (set.next()) {
-				st.execute(updateQuery);
-			} else {
-				st.execute(insertQuery);
-			}
-
-			set.close();
-			st.close();
-			return true;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false;
-		}
-	}
-
 	public static synchronized boolean registerSensor(String key, String description, String type, String unit, float min, float max) {
 		if (!initialized) return false;
 
@@ -760,41 +725,46 @@ public class Database {
 		}
 	}
 
-	public static class UserInfo {
-		private final String id;
-		private final String authKey;
-		private final int permissions;
-		private final long credits;
-		private final String language;
+	public static boolean addTokenUsage(Snowflake guildId, long tokenAmt) {
+		if (!initialized) return false;
 
-		public UserInfo(String id, String authKey, int permissions, long credits, String language) {
-			this.id = id;
-			this.authKey = authKey;
-			this.permissions = permissions;
-			this.credits = credits;
-			this.language = language;
+		try {
+
+			String select = FormattedString
+					.create("SELECT `gpt_token_usage` FROM `guilds` WHERE `guild_id`='${id}';")
+					.addParam("id", guildId.asString())
+					.build();
+			String update = FormattedString
+					.create("UPDATE `guilds` SET `gpt_token_usage` = `gpt_token_usage` + ${amount} WHERE `guild_id`='${id}';")
+					.addParam("amount", tokenAmt)
+					.addParam("id", guildId.asString())
+					.build();
+			String insert = FormattedString
+					.create("INSERT INTO `guilds`(`guild_id`, `gpt_token_usage`) VALUES ('${id}', '${amount}');")
+					.addParam("amount", tokenAmt)
+					.addParam("id", guildId.asString())
+					.build();
+
+			Statement st = conn.createStatement();
+			ResultSet set = st.executeQuery(select);
+			if (set.next()) {
+				st.execute(update);
+			} else {
+				st.execute(insert);
+			}
+
+			set.close();
+			st.close();
+			return true;
+
 		}
-
-		public String getId() {
-			return id;
-		}
-
-		public String getAuthKey() {
-			return authKey;
-		}
-
-		public int getPermissions() {
-			return permissions;
-		}
-
-		public long getCredits() {
-			return credits;
-		}
-
-		public String getLanguage() {
-			return language;
+		catch (SQLException e) {
+			e.printStackTrace();
+			return false;
 		}
 	}
+
+	public record UserInfo(String id, String authKey, int permissions, long credits, String language) {}
 
 	public static class SensorData {
 

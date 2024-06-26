@@ -77,8 +77,10 @@ public class ChatGPTCommand implements ICommand {
 				.build();
 		ChatCompletionResult result = service.createChatCompletion(completionRequest);
 		long tokenAmt = result.getUsage().getTotalTokens();
-		//Database.subtractUserCredits(user.getId(), tokenAmt);
-		Database.addTokenUsage(guildId, tokenAmt);
+		Database.subtractUserCredits(user.getId(), tokenAmt);
+		if (guildId != null) {
+			Database.addTokenUsage(guildId, tokenAmt);
+		}
 		List<ChatCompletionChoice> choices = result.getChoices();
 		choices.forEach(e -> {
 			String text = e.getMessage().getContent();
