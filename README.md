@@ -9,6 +9,8 @@ The entire bot is written in Java, using Discord4J API.
 
 ## Features
 - Basic commands
+- Music bot functionality using [LavaPlayer by LavaLink](https://github.com/lavalink-devs/lavaplayer) 
+    - YouTube support provided by [youtube-source](https://github.com/lavalink-devs/youtube-source)
 - Command execution scheduler, if you want to run a certain command at a certain time (WIP) 
 - Simple webserver that allows the developers to use the bot as a webhook
 - MQTT client, that allows the bot to send messages to an MQTT broker to, for example, retrieve data from a sensor
